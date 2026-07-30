@@ -1,0 +1,446 @@
+newmtl Temple_3D_Final_01:initialShadingGroup
+illum 4
+Kd 0.50 0.50 0.50
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl Temple_3D_Final_01:initialShadingGroup2
+illum 4
+Kd 0.50 0.50 0.50
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl Temple_3D_Final_01:initialShadingGroup4
+illum 4
+Kd 0.50 0.50 0.50
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl Temple_3D_Final_01:initialShadingGroup6
+illum 4
+Kd 0.50 0.50 0.50
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert2SG
+illum 4
+Kd 0.10 0.10 0.10
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert3SG
+illum 4
+Kd 0.50 0.50 0.50
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert4SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd MandopamCLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert5SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Mandap_Arch.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert6SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Plane1.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert7SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Mandap_Layer.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert8SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Mandap_Layer_Arch_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert9SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Shala_figure_Top_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert10SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Shala_figure_Top_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert11SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Shala_figure_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert11SG2
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert12SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Shala_figure_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert13SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Shala_figure_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert14SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd PLR_R_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert15SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Piller_Top_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert16SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Mandap_Layer_Arch_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert19SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Skala_Left_UV.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert20SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Skala_Left_UV.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert22SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd PLR_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert23SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Shala_figure_Top_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert26SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Lady_LCLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert26SG2
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Part_09_Shala_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert27SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Lside_Midle_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert27SG2
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert29SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Shala_base_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert29SG2
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Base_Roof_Arch_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert30SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Shala_Border_01.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert32SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Base_Roof_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert33SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Base_Roof_Arch_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert34SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Base_Roof_Arch_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert35SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Base_Roof_Arch_Border_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert36SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Gana_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert37SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd First_flour_F_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert40SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd L_Figure_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert42SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd B_Figure_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert43SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd down_Dragon_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert44SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd down_Big_Dragon_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert45SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Petal_1.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert47SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Petal_1.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert49SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd R_Side_figure_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert51SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Base.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert52SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd download.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert54SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd step_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert56SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Main_Nandi_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert57SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Dwarapalakar_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert58SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd First_flour_F_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert60SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd In_Side_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert61SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha01_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert62SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha02_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert63SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha03_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert64SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha04_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert65SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha05_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert66SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha06_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert67SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd BG.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert68SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha07CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert69SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Nandi1.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert70SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha07CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert71SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha07_1CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert72SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha_Figure_CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:lambert73SG
+illum 4
+Kd 0.00 0.00 0.00
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+map_Kd Kalasha07CLR.jpg
+Ni 1.00
+newmtl Temple_3D_Final_01:pasted__lambert2SG1
+illum 4
+Kd 0.50 0.50 0.50
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
