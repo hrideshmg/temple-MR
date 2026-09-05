@@ -1108,8 +1108,6 @@ MonoBehaviour:
   features:
   - {fileID: 4304102600386477695}
   - {fileID: 7092303324967455931}
-  - {fileID: 7512086124572162020}
-  - {fileID: 8248863545063667837}
   - {fileID: -7220532320090077494}
   - {fileID: 3097300913176403155}
   - {fileID: 7471873963456124325}
@@ -1149,11 +1147,7 @@ MonoBehaviour:
   m_spacewarpMotionVectorTextureFormat: 0
   m_optimizeBufferDiscards: 0
   m_symmetricProjection: 0
-  m_optimizeMultiviewRenderRegions: 0
-  m_multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegionSetting: 1
   m_foveatedRenderingApi: 1
-  m_useOpenXRPredictedTime: 1
 --- !u!114 &-3027347038651126388
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1331,7 +1325,6 @@ MonoBehaviour:
   targetOpenXRApiVersion: 
   required: 0
   customRuntimeLoaderName: 
-  m_AutoStartSubsystem: 1
 --- !u!114 &-2418876381299300992
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1461,14 +1454,13 @@ MonoBehaviour:
   m_enabled: 0
   nameUi: Hand Tracking Subsystem
   version: 0.0.1
-  featureIdInternal: com.unity.openxr.feature.input.handtrackingsubsystem
+  featureIdInternal: com.unity.openxr.feature.input.handtracking
   openxrExtensionStrings: XR_EXT_hand_tracking
   company: Unity
   priority: -100
   targetOpenXRApiVersion: 
   required: 0
   customRuntimeLoaderName: 
-  m_AutoStartSubsystem: 1
 --- !u!114 &-1952102959441957757
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1874,14 +1866,13 @@ MonoBehaviour:
   m_enabled: 0
   nameUi: Hand Tracking Subsystem
   version: 0.0.1
-  featureIdInternal: com.unity.openxr.feature.input.handtrackingsubsystem
+  featureIdInternal: com.unity.openxr.feature.input.handtracking
   openxrExtensionStrings: XR_EXT_hand_tracking
   company: Unity
   priority: -100
   targetOpenXRApiVersion: 
   required: 0
   customRuntimeLoaderName: 
-  m_AutoStartSubsystem: 1
 --- !u!114 &-176621774382120105
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1942,7 +1933,6 @@ MonoBehaviour:
   targetOpenXRApiVersion: 
   required: 0
   customRuntimeLoaderName: 
-  m_UseRightHandedNDC: 0
 --- !u!114 &104226608295931366
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2058,8 +2048,6 @@ MonoBehaviour:
   lateLatchingMode: 0
   lateLatchingDebug: 0
   optimizeMultiviewRenderRegions: 0
-  m_multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegions: 1
   spacewarpMotionVectorTextureFormat: 0
 --- !u!114 &388041309283547055
 MonoBehaviour:
@@ -2174,14 +2162,13 @@ MonoBehaviour:
   m_enabled: 0
   nameUi: Hand Tracking Subsystem
   version: 0.0.1
-  featureIdInternal: com.unity.openxr.feature.input.handtrackingsubsystem
+  featureIdInternal: com.unity.openxr.feature.input.handtracking
   openxrExtensionStrings: XR_EXT_hand_tracking
   company: Unity
   priority: -100
   targetOpenXRApiVersion: 
   required: 0
   customRuntimeLoaderName: 
-  m_AutoStartSubsystem: 1
 --- !u!114 &851122678653542416
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2681,11 +2668,7 @@ MonoBehaviour:
   m_spacewarpMotionVectorTextureFormat: 0
   m_optimizeBufferDiscards: 0
   m_symmetricProjection: 0
-  m_optimizeMultiviewRenderRegions: 0
-  m_multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegionSetting: 1
   m_foveatedRenderingApi: 1
-  m_useOpenXRPredictedTime: 1
 --- !u!114 &3847972459580143762
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2828,11 +2811,7 @@ MonoBehaviour:
   m_spacewarpMotionVectorTextureFormat: 0
   m_optimizeBufferDiscards: 0
   m_symmetricProjection: 0
-  m_optimizeMultiviewRenderRegions: 0
-  m_multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegionSetting: 1
   m_foveatedRenderingApi: 1
-  m_useOpenXRPredictedTime: 1
 --- !u!114 &4474096926013138510
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3152,8 +3131,6 @@ MonoBehaviour:
   lateLatchingMode: 0
   lateLatchingDebug: 0
   optimizeMultiviewRenderRegions: 0
-  m_multiviewRenderRegionsOptimizationMode: 0
-  m_hasMigratedMultiviewRenderRegions: 1
   spacewarpMotionVectorTextureFormat: 0
 --- !u!114 &6317189393450377995
 MonoBehaviour:
@@ -3260,14 +3237,13 @@ MonoBehaviour:
   m_enabled: 0
   nameUi: Hand Tracking Subsystem
   version: 0.0.1
-  featureIdInternal: com.unity.openxr.feature.input.handtrackingsubsystem
+  featureIdInternal: com.unity.openxr.feature.input.handtracking
   openxrExtensionStrings: XR_EXT_hand_tracking
   company: Unity
   priority: -100
   targetOpenXRApiVersion: 
   required: 0
   customRuntimeLoaderName: 
-  m_AutoStartSubsystem: 1
 --- !u!114 &6800820741299576763
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3407,7 +3383,6 @@ MonoBehaviour:
   targetOpenXRApiVersion: 
   required: 0
   customRuntimeLoaderName: 
-  m_UseRightHandedNDC: 0
 --- !u!114 &7521216467541886192
 MonoBehaviour:
   m_ObjectHideFlags: 0
