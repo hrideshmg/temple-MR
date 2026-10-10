@@ -17,6 +17,7 @@ public static class UISpriteFactory
         Pin,
         Collapse,
         Menu,
+        Crack,
     }
 
     private const int IconSize = 128;
@@ -164,6 +165,17 @@ public static class UISpriteFactory
                 return p => Mathf.Min(Segment(p, new Vector2(-0.24f, 0.17f), new Vector2(0.24f, 0.17f)),
                     Mathf.Min(Segment(p, new Vector2(-0.24f, 0f), new Vector2(0.24f, 0f)),
                         Segment(p, new Vector2(-0.24f, -0.17f), new Vector2(0.24f, -0.17f)))) - Stroke;
+            case Icon.Crack:
+                return p =>
+                {
+                    var a = new Vector2(-0.06f, 0.32f);
+                    var b = new Vector2(0.1f, 0.08f);
+                    var c = new Vector2(-0.08f, -0.04f);
+                    var d = new Vector2(0.08f, -0.32f);
+                    float bolt = Mathf.Min(Segment(p, a, b), Mathf.Min(Segment(p, b, c), Segment(p, c, d)));
+                    float branch = Segment(p, b, new Vector2(0.27f, 0.16f));
+                    return Mathf.Min(bolt - Stroke, branch - Stroke * 0.7f);
+                };
             default:
                 return p => 1f;
         }

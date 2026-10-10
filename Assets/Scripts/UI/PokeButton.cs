@@ -20,6 +20,7 @@ public class PokeButton : MonoBehaviour
         Secondary,
         Ghost,
         Orb,
+        Danger,
     }
 
     /// <summary>Raised once per press (poke or ray select).</summary>
@@ -29,6 +30,7 @@ public class PokeButton : MonoBehaviour
     private static readonly Color PrimaryContent = new Color32(0x1B, 0x12, 0x06, 0xFF);
     private static readonly Color SecondaryColor = new Color(1f, 1f, 1f, 0.09f);
     private static readonly Color GhostColor = new Color(1f, 1f, 1f, 0.0f);
+    private static readonly Color DangerColor = new Color32(0xC8, 0x3B, 0x2F, 0xFF);
     private static readonly Color Content = new Color(1f, 1f, 1f, 0.94f);
     private static readonly Color ActiveColor = new Color32(0xF2, 0xA3, 0x3A, 0x55);
 
@@ -88,6 +90,10 @@ public class PokeButton : MonoBehaviour
                 _baseColor = PrimaryColor;
                 _contentColor = PrimaryContent;
                 break;
+            case Style.Danger:
+                _baseColor = DangerColor;
+                _contentColor = Content;
+                break;
             case Style.Ghost:
                 _baseColor = GhostColor;
                 _contentColor = new Color(1f, 1f, 1f, 0.7f);
@@ -141,7 +147,7 @@ public class PokeButton : MonoBehaviour
             _label = lrt.gameObject.AddComponent<TextMeshProUGUI>();
             _label.text = label;
             _label.fontSize = fontSize;
-            _label.fontStyle = style == Style.Primary || style == Style.Orb ? FontStyles.Bold : FontStyles.Normal;
+            _label.fontStyle = style != Style.Secondary && style != Style.Ghost ? FontStyles.Bold : FontStyles.Normal;
             _label.color = _contentColor;
             _label.alignment = icon.HasValue ? TextAlignmentOptions.MidlineLeft : TextAlignmentOptions.Center;
             _label.raycastTarget = false;
@@ -247,7 +253,7 @@ public class PokeButton : MonoBehaviour
         _flash = Mathf.MoveTowards(_flash, 0f, Time.unscaledDeltaTime * 3f);
 
         Color c = _toggled ? ActiveColor : _baseColor;
-        if (_style == Style.Primary || _style == Style.Orb)
+        if (_style == Style.Primary || _style == Style.Orb || _style == Style.Danger)
         {
             c = Color.Lerp(c, Color.white, _hover * 0.18f + _flash * 0.25f);
         }

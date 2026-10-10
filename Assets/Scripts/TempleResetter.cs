@@ -40,11 +40,16 @@ public class TempleResetter : MonoBehaviour
     }
 
     /// <summary>
-    /// Restores the temple to its home pose.
+    /// Restores the temple to its home pose, rebuilding it first if it was demolished.
     /// Wired to the "Reset temple" button.
     /// </summary>
     public void ResetTemple()
     {
+        if (TryGetComponent(out TempleDemolition demolition))
+        {
+            demolition.Rebuild();
+        }
+
         if (_rigidbody != null)
         {
             if (!_rigidbody.isKinematic)

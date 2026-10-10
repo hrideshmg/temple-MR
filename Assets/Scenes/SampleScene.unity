@@ -1309,6 +1309,32 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TempleResetter
   _target: {fileID: 0}
+--- !u!114 &1257254195
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1257254188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6eeb3ec4d470b57468f166a87c4af7b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TempleDemolition
+  _chunkCount: 40
+  _fractureSeed: 7
+  _splitTriangleCount: 2500
+  _splitSizeFraction: 0.12
+  _tinySizeFraction: 0.012
+  _explosive: 1
+  _trembleTime: 0.45
+  _trembleAmount: 0.006
+  _releaseSpread: 0.3
+  _outwardKick: 0.35
+  _inwardSag: 0.12
+  _tumble: 2.5
+  _gravityScale: 0.75
+  _groundSize: 6
 --- !u!1 &1327628385
 GameObject:
   m_ObjectHideFlags: 0
@@ -1971,6 +1997,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 49c2649914e102242a82ffe4ee8db6ef, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1257254194}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 49c2649914e102242a82ffe4ee8db6ef, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1257254195}
   m_SourcePrefab: {fileID: 100100000, guid: 49c2649914e102242a82ffe4ee8db6ef, type: 3}
 --- !u!1 &1629222886
 GameObject:
@@ -2395,6 +2424,7 @@ MonoBehaviour:
   _head: {fileID: 757122133}
   _temple: {fileID: 1257254194}
   _story: {fileID: 1953842070}
+  _demolition: {fileID: 0}
   _clickSound: {fileID: 8300000, guid: aebed88a33938c74f80e53b1386c2034, type: 3}
   _side: 1
   _sideOffset: 0.24
