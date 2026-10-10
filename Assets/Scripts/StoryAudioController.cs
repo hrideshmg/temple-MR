@@ -98,4 +98,12 @@ public class StoryAudioController : MonoBehaviour
             _buttonLabel.text = _audioSource.isPlaying ? _pauseText : _playText;
         }
     }
+
+    public bool IsPlaying => _audioSource != null && _audioSource.isPlaying;
+
+    /// <summary>Playback position in seconds.</summary>
+    public float PlaybackTime => _audioSource != null ? _audioSource.time : 0f;
+
+    /// <summary>Clip length in seconds (0 when no clip).</summary>
+    public float Length => _audioSource != null && _audioSource.clip != null ? _audioSource.clip.length : 0f;
 }
