@@ -15,6 +15,9 @@ using UnityEngine.UI;
 /// The bar above the panel (<see cref="PanelGrabBar"/>) can be grabbed to move it. Where it is
 /// dropped becomes its new docking spot relative to the body, so it keeps following from there.
 ///
+/// The "</>" button in the header opens a developer popup beside the panel with room tools: rescan
+/// the room and show the room colliders (see <see cref="RoomColliders"/>).
+///
 /// The whole UI is built in code at startup (see <see cref="Build"/>) so there are no prefabs or
 /// art assets to keep in sync. Every button is a <see cref="PokeButton"/>, which works with both
 /// direct finger poke and hand/controller rays.
@@ -97,6 +100,9 @@ public class TempleControlPanel : MonoBehaviour
     private static readonly Vector2 HandleSize = new Vector2(168f, 60f);
     private static readonly Vector2 GrabBarHitSize = new Vector2(150f, 34f);
     private static readonly Vector2 GrabBarPillSize = new Vector2(80f, 9f);
+    private const float DevWidth = 200f;
+    private const float DevHeight = 184f;
+    private const float DevGap = 12f;
 
     // Limits on where the panel can be dragged to, as distance from the eyes.
     private const float MinDragDistance = 0.2f;
@@ -121,6 +127,12 @@ public class TempleControlPanel : MonoBehaviour
     private PokeButton _setPositionButton;
     private PokeButton _resetButton;
     private PokeButton _demolishButton;
+    private PokeButton _devButton;
+    private RectTransform _devPopup;
+    private PokeButton[] _devButtons;
+    private PokeButton _rescanButton;
+    private PokeButton _collidersButton;
+    private bool _devOpen;
     private PanelGrabBar _grabBar;
     private RectTransform _progressFill;
     private TMP_Text _timeText;
@@ -193,6 +205,7 @@ public class TempleControlPanel : MonoBehaviour
         scaler.referencePixelsPerUnit = 100f;
 
         BuildPanel();
+        BuildDevPopup();
         BuildHandle();
 
         canvasGo.SetActive(true);
@@ -203,27 +216,13 @@ public class TempleControlPanel : MonoBehaviour
         _panel = PokeButton.NewRect("Panel", _canvasRect);
         _panel.sizeDelta = new Vector2(Width, Height);
         _panelGroup = _panel.gameObject.AddComponent<CanvasGroup>();
-
-        var shadow = PokeButton.NewImage("Shadow", _panel, UISpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.45f));
-        PokeButton.Stretch(shadow.rectTransform, -18f);
-        shadow.pixelsPerUnitMultiplier = UISpriteFactory.RoundedCornerPixels / (PanelRadius + 18f);
-
-        var rim = PokeButton.NewImage("Rim", _panel, UISpriteFactory.Rounded, new Color(1f, 1f, 1f, 0.10f));
-        PokeButton.Stretch(rim.rectTransform, -1.5f);
-        rim.pixelsPerUnitMultiplier = UISpriteFactory.RoundedCornerPixels / (PanelRadius + 1.5f);
-
-        var bg = PokeButton.NewImage("Background", _panel, UISpriteFactory.Rounded, PanelColor);
-        PokeButton.Stretch(bg.rectTransform);
-        bg.pixelsPerUnitMultiplier = UISpriteFactory.RoundedCornerPixels / PanelRadius;
-
-        // Accent strip along the top edge.
-        var strip = PokeButton.NewImage("AccentStrip", _panel, UISpriteFactory.Rounded, Accent);
-        Place(strip.rectTransform, Width * 0.5f - 24f, 7f, 48f, 4f);
-        strip.pixelsPerUnitMultiplier = UISpriteFactory.RoundedCornerPixels / 2f;
+        Backdrop(_panel);
 
         // ---- Header
-        Text("Title", "Temple MR", 19f, FontStyles.Bold, TextPrimary, Pad, 18f, 160f, 24f);
-        Text("Subtitle", "Control panel", 11.5f, FontStyles.Normal, TextSecondary, Pad, 41f, 160f, 16f);
+        Text("Title", "Temple MR", 19f, FontStyles.Bold, TextPrimary, Pad, 18f, 120f, 24f);
+        Text("Subtitle", "Control panel", 11.5f, FontStyles.Normal, TextSecondary, Pad, 41f, 120f, 16f);
+        _devButton = Button("Developer", PokeButton.Style.Ghost, UISpriteFactory.Icon.Code, null,
+            Width - Pad - 36f - 8f - 36f, 18f, 36f, 36f, ToggleDevPopup, 13f);
         var collapse = Button("Collapse", PokeButton.Style.Secondary, UISpriteFactory.Icon.Collapse, null,
             Width - Pad - 36f, 18f, 36f, 36f, Collapse, 13f);
 
@@ -257,7 +256,7 @@ public class TempleControlPanel : MonoBehaviour
         _demolishButton = Button("Demolish", PokeButton.Style.Danger, UISpriteFactory.Icon.Crack, "Demolish temple",
             Pad, 320f, Width - Pad * 2f, 48f, () => _demolition?.Toggle(), 15f);
 
-        _panelButtons = new[] { collapse, _playButton, _resetButton, _setPositionButton, _demolishButton };
+        _panelButtons = new[] { _devButton, collapse, _playButton, _resetButton, _setPositionButton, _demolishButton };
         foreach (var b in _panelButtons)
         {
             b.BuildInteraction();
@@ -267,6 +266,55 @@ public class TempleControlPanel : MonoBehaviour
         _grabBar = PanelGrabBar.Create(_panel, transform, GrabBarHitSize, GrabBarPillSize);
         Place(_grabBar.Rect, (Width - GrabBarHitSize.x) * 0.5f, -GrabBarHitSize.y - 4f, GrabBarHitSize.x, GrabBarHitSize.y);
         _grabBar.BuildInteraction();
+    }
+
+    /// <summary>Developer tools in a popup beside the panel, on the side nearer the body.</summary>
+    private void BuildDevPopup()
+    {
+        _devPopup = PokeButton.NewRect("DeveloperPopup", _canvasRect);
+        _devPopup.sizeDelta = new Vector2(DevWidth, DevHeight);
+        float x = -(int)_side * (Width + DevWidth) * 0.5f - (int)_side * DevGap;
+        _devPopup.anchoredPosition = new Vector2(x, (Height - DevHeight) * 0.5f);
+        Backdrop(_devPopup);
+
+        Text("Title", "Developer", 15f, FontStyles.Bold, TextPrimary, Pad, 18f, 120f, 22f, _devPopup);
+        var close = Button("Close", PokeButton.Style.Ghost, UISpriteFactory.Icon.Close, null,
+            DevWidth - Pad - 32f, 14f, 32f, 32f, ToggleDevPopup, 12f, _devPopup);
+
+        Divider(56f, _devPopup);
+        SectionLabel("ROOM", 68f, _devPopup);
+        _rescanButton = Button("RescanRoom", PokeButton.Style.Secondary, UISpriteFactory.Icon.Scan, "Rescan room",
+            Pad, 86f, DevWidth - Pad * 2f, 40f, RoomColliders.Rescan, 13.5f, _devPopup);
+        _collidersButton = Button("ShowColliders", PokeButton.Style.Secondary, UISpriteFactory.Icon.Eye, "Show colliders",
+            Pad, 132f, DevWidth - Pad * 2f, 40f,
+            () => RoomColliders.CollidersVisible = !RoomColliders.CollidersVisible, 13.5f, _devPopup);
+
+        _devButtons = new[] { close, _rescanButton, _collidersButton };
+        foreach (var b in _devButtons)
+        {
+            b.BuildInteraction();
+        }
+    }
+
+    /// <summary>Drop shadow, rim, background and accent strip shared by the panel and popup.</summary>
+    private static void Backdrop(RectTransform parent)
+    {
+        var shadow = PokeButton.NewImage("Shadow", parent, UISpriteFactory.Shadow, new Color(0f, 0f, 0f, 0.45f));
+        PokeButton.Stretch(shadow.rectTransform, -18f);
+        shadow.pixelsPerUnitMultiplier = UISpriteFactory.RoundedCornerPixels / (PanelRadius + 18f);
+
+        var rim = PokeButton.NewImage("Rim", parent, UISpriteFactory.Rounded, new Color(1f, 1f, 1f, 0.10f));
+        PokeButton.Stretch(rim.rectTransform, -1.5f);
+        rim.pixelsPerUnitMultiplier = UISpriteFactory.RoundedCornerPixels / (PanelRadius + 1.5f);
+
+        var bg = PokeButton.NewImage("Background", parent, UISpriteFactory.Rounded, PanelColor);
+        PokeButton.Stretch(bg.rectTransform);
+        bg.pixelsPerUnitMultiplier = UISpriteFactory.RoundedCornerPixels / PanelRadius;
+
+        // Accent strip along the top edge.
+        var strip = PokeButton.NewImage("AccentStrip", parent, UISpriteFactory.Rounded, Accent);
+        Place(strip.rectTransform, parent.sizeDelta.x * 0.5f - 24f, 7f, 48f, 4f);
+        strip.pixelsPerUnitMultiplier = UISpriteFactory.RoundedCornerPixels / 2f;
     }
 
     private void BuildHandle()
@@ -310,6 +358,12 @@ public class TempleControlPanel : MonoBehaviour
         _setPositionButton.SetLabel(SetPositionLabel);
         _setPositionButton.Toggled = false;
         _savedFeedback = null;
+    }
+
+    private void ToggleDevPopup()
+    {
+        _devOpen = !_devOpen;
+        ApplyExpand();
     }
 
     public void Collapse()
@@ -492,6 +546,17 @@ public class TempleControlPanel : MonoBehaviour
         }
         _handleButton.SetInteractable(_collapsed);
         _grabBar.SetInteractable(!_collapsed);
+
+        // The popup stays open across a collapse, but only shows with the panel.
+        bool devVisible = _devOpen && !_collapsed;
+        foreach (var b in _devButtons)
+        {
+            b.SetInteractable(devVisible);
+        }
+        _devButton.Toggled = _devOpen;
+        _devPopup.localScale = _panel.localScale;
+        _devPopup.gameObject.SetActive(devVisible && k > 0.001f);
+
         _panel.gameObject.SetActive(k > 0.001f);
         _handle.gameObject.SetActive(k < 0.999f);
     }
@@ -506,6 +571,16 @@ public class TempleControlPanel : MonoBehaviour
             // Nothing sensible to save while the temple is lying in pieces.
             _setPositionButton.SetEnabled(!down);
             _resetButton.SetEnabled(!down);
+        }
+
+        if (_devOpen)
+        {
+            bool busy = RoomColliders.IsBusy;
+            _rescanButton.SetLabel(busy ? "Scanning..." : "Rescan room");
+            _rescanButton.SetEnabled(!busy);
+            bool shown = RoomColliders.CollidersVisible;
+            _collidersButton.SetLabel(shown ? "Hide colliders" : "Show colliders");
+            _collidersButton.Toggled = shown;
         }
 
         if (_story == null)
@@ -524,19 +599,21 @@ public class TempleControlPanel : MonoBehaviour
 
     // =====================================================================  layout helpers
 
-    /// <summary>Positions a rect inside the panel using top-left coordinates.</summary>
+    /// <summary>Positions a rect inside its parent (the panel or popup) using top-left coordinates.</summary>
     private static void Place(RectTransform rt, float x, float y, float w, float h)
     {
+        Vector2 parent = ((RectTransform)rt.parent).sizeDelta;
         rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.pivot = new Vector2(0.5f, 0.5f);
         rt.sizeDelta = new Vector2(w, h);
-        rt.anchoredPosition = new Vector2(x + w * 0.5f - Width * 0.5f, Height * 0.5f - y - h * 0.5f);
+        rt.anchoredPosition = new Vector2(x + w * 0.5f - parent.x * 0.5f, parent.y * 0.5f - y - h * 0.5f);
     }
 
     private PokeButton Button(string name, PokeButton.Style style, UISpriteFactory.Icon? icon, string label,
-        float x, float y, float w, float h, System.Action onPress, float fontSize)
+        float x, float y, float w, float h, System.Action onPress, float fontSize, RectTransform parent = null)
     {
-        var b = PokeButton.Create(_panel, name, style, icon, label, Mathf.Min(ButtonRadius, h * 0.5f), fontSize);
+        var b = PokeButton.Create(parent != null ? parent : _panel, name, style, icon, label,
+            Mathf.Min(ButtonRadius, h * 0.5f), fontSize);
         Place(b.Rect, x, y, w, h);
         b.Pressed += Click;
         b.Pressed += onPress;
@@ -544,9 +621,9 @@ public class TempleControlPanel : MonoBehaviour
     }
 
     private TMP_Text Text(string name, string text, float size, FontStyles style, Color color,
-        float x, float y, float w, float h)
+        float x, float y, float w, float h, RectTransform parent = null)
     {
-        var rt = PokeButton.NewRect(name, _panel);
+        var rt = PokeButton.NewRect(name, parent != null ? parent : _panel);
         Place(rt, x, y, w, h);
         var tmp = rt.gameObject.AddComponent<TextMeshProUGUI>();
         tmp.text = text;
@@ -559,16 +636,18 @@ public class TempleControlPanel : MonoBehaviour
         return tmp;
     }
 
-    private void SectionLabel(string text, float y)
+    private void SectionLabel(string text, float y, RectTransform parent = null)
     {
-        var t = Text("Section_" + text, text, 10f, FontStyles.Bold, Accent, Pad, y, Width - Pad * 2f, 14f);
+        parent = parent != null ? parent : _panel;
+        var t = Text("Section_" + text, text, 10f, FontStyles.Bold, Accent, Pad, y, parent.sizeDelta.x - Pad * 2f, 14f, parent);
         t.characterSpacing = 12f;
     }
 
-    private void Divider(float y)
+    private void Divider(float y, RectTransform parent = null)
     {
-        var d = PokeButton.NewImage("Divider", _panel, null, new Color(1f, 1f, 1f, 0.07f));
-        Place(d.rectTransform, Pad, y, Width - Pad * 2f, 1f);
+        parent = parent != null ? parent : _panel;
+        var d = PokeButton.NewImage("Divider", parent, null, new Color(1f, 1f, 1f, 0.07f));
+        Place(d.rectTransform, Pad, y, parent.sizeDelta.x - Pad * 2f, 1f);
     }
 
     private static string FormatTime(float seconds)

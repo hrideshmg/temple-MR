@@ -18,6 +18,10 @@ public static class UISpriteFactory
         Collapse,
         Menu,
         Crack,
+        Code,
+        Scan,
+        Eye,
+        Close,
     }
 
     private const int IconSize = 128;
@@ -176,6 +180,39 @@ public static class UISpriteFactory
                     float branch = Segment(p, b, new Vector2(0.27f, 0.16f));
                     return Mathf.Min(bolt - Stroke, branch - Stroke * 0.7f);
                 };
+            case Icon.Code:
+                // </>
+                return p =>
+                {
+                    float left = Mathf.Min(Segment(p, new Vector2(-0.12f, 0.2f), new Vector2(-0.3f, 0f)),
+                        Segment(p, new Vector2(-0.3f, 0f), new Vector2(-0.12f, -0.2f)));
+                    float right = Mathf.Min(Segment(p, new Vector2(0.12f, 0.2f), new Vector2(0.3f, 0f)),
+                        Segment(p, new Vector2(0.3f, 0f), new Vector2(0.12f, -0.2f)));
+                    float slash = Segment(p, new Vector2(0.06f, 0.27f), new Vector2(-0.06f, -0.27f));
+                    return Mathf.Min(Mathf.Min(left, right), slash) - Stroke * 0.8f;
+                };
+            case Icon.Scan:
+                // Viewfinder corners with a scan line across the middle.
+                return p =>
+                {
+                    var q = new Vector2(Mathf.Abs(p.x), Mathf.Abs(p.y));
+                    float corner = Mathf.Min(Segment(q, new Vector2(0.28f, 0.28f), new Vector2(0.12f, 0.28f)),
+                        Segment(q, new Vector2(0.28f, 0.28f), new Vector2(0.28f, 0.12f)));
+                    float line = Segment(p, new Vector2(-0.18f, 0f), new Vector2(0.18f, 0f));
+                    return Mathf.Min(corner, line) - Stroke * 0.8f;
+                };
+            case Icon.Eye:
+                return p =>
+                {
+                    // Lens where two circles overlap, drawn as an outline, with a pupil.
+                    float lens = Mathf.Max((p - new Vector2(0f, -0.25f)).magnitude - 0.37f,
+                        (p - new Vector2(0f, 0.25f)).magnitude - 0.37f);
+                    float pupil = p.magnitude - 0.075f;
+                    return Mathf.Min(Mathf.Abs(lens) - Stroke * 0.7f, pupil);
+                };
+            case Icon.Close:
+                return p => Mathf.Min(Segment(p, new Vector2(-0.2f, -0.2f), new Vector2(0.2f, 0.2f)),
+                    Segment(p, new Vector2(-0.2f, 0.2f), new Vector2(0.2f, -0.2f))) - Stroke;
             default:
                 return p => 1f;
         }
