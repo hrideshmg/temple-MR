@@ -37,6 +37,7 @@ public class PokeButton : MonoBehaviour
     private const float PressCooldown = 0.35f;
     private const float PressDepth = 4f;      // canvas units the face sinks when pressed
     private const float AnimSharpness = 18f;
+    private const float DisabledAlpha = 0.35f;
 
     private Style _style;
     private RectTransform _face;
@@ -46,6 +47,9 @@ public class PokeButton : MonoBehaviour
     private PokeInteractable _poke;
     private RayInteractable _ray;
     private GameObject _interactionRoot;
+    private CanvasGroup _faceGroup;
+    private bool _interactable = true;
+    private bool _enabled = true;
 
     private Color _baseColor;
     private Color _contentColor;
@@ -112,6 +116,7 @@ public class PokeButton : MonoBehaviour
         // Face: everything visual lives here so it can sink / scale without moving the hit surface.
         _face = NewRect("Face", Rect);
         Stretch(_face);
+        _faceGroup = _face.gameObject.AddComponent<CanvasGroup>();
 
         if (style == Style.Orb)
         {
@@ -200,15 +205,33 @@ public class PokeButton : MonoBehaviour
     /// <summary>Enables or disables input (e.g. when the panel collapses).</summary>
     public void SetInteractable(bool interactable)
     {
-        if (_interactionRoot != null && _interactionRoot.activeSelf != interactable)
+        _interactable = interactable;
+        ApplyInputState();
+    }
+
+    /// <summary>
+    /// Greys the button out and ignores input while false (e.g. an action that makes no sense
+    /// right now). Independent of <see cref="SetInteractable"/>.
+    /// </summary>
+    public void SetEnabled(bool enabled)
+    {
+        _enabled = enabled;
+        ApplyInputState();
+    }
+
+    private void ApplyInputState()
+    {
+        bool active = _interactable && _enabled;
+        if (_interactionRoot != null && _interactionRoot.activeSelf != active)
         {
-            _interactionRoot.SetActive(interactable);
+            _interactionRoot.SetActive(active);
         }
-        if (!interactable)
+        if (!active)
         {
             _hover = 0f;
             _press = 0f;
         }
+        _faceGroup.alpha = _enabled ? 1f : DisabledAlpha;
     }
 
     public void SetLabel(string text)
