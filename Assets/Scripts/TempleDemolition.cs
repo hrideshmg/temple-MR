@@ -117,6 +117,10 @@ public class TempleDemolition : MonoBehaviour
     private Coroutine _routine;
     private bool _trembling;
     private Vector3 _trembleOrigin;
+    private Vector3 _preDemolishPosition;
+    private Quaternion _preDemolishRotation;
+    private Rigidbody _rootBody;
+    private bool _rootWasKinematic;
 
     private void Start()
     {
@@ -130,6 +134,20 @@ public class TempleDemolition : MonoBehaviour
         if (!IsReady || IsDemolished)
         {
             return;
+        }
+        // Remember where the temple stood; the root's own Rigidbody must not fall with the rubble.
+        _preDemolishPosition = transform.position;
+        _preDemolishRotation = transform.rotation;
+        _rootBody = GetComponent<Rigidbody>();
+        if (_rootBody != null)
+        {
+            _rootWasKinematic = _rootBody.isKinematic;
+            if (!_rootBody.isKinematic)
+            {
+                _rootBody.linearVelocity = Vector3.zero;
+                _rootBody.angularVelocity = Vector3.zero;
+            }
+            _rootBody.isKinematic = true;
         }
         IsDemolished = true;
         DemolishedChanged?.Invoke(true);
@@ -159,6 +177,15 @@ public class TempleDemolition : MonoBehaviour
             p.Body.isKinematic = true;
         }
         _debrisRoot.gameObject.SetActive(false);
+
+        // Put the temple back where it stood before it fell.
+        transform.SetPositionAndRotation(_preDemolishPosition, _preDemolishRotation);
+        if (_rootBody != null)
+        {
+            _rootBody.position = _preDemolishPosition;
+            _rootBody.rotation = _preDemolishRotation;
+            _rootBody.isKinematic = _rootWasKinematic;
+        }
         SetIntactVisible(true);
 
         IsDemolished = false;

@@ -119,6 +119,7 @@ public class TempleControlPanel : MonoBehaviour
     private PokeButton _handleButton;
     private PokeButton _playButton;
     private PokeButton _setPositionButton;
+    private PokeButton _resetButton;
     private PokeButton _demolishButton;
     private PanelGrabBar _grabBar;
     private RectTransform _progressFill;
@@ -249,14 +250,14 @@ public class TempleControlPanel : MonoBehaviour
 
         // ---- Temple
         SectionLabel("TEMPLE", 190f);
-        var reset = Button("ResetTemple", PokeButton.Style.Secondary, UISpriteFactory.Icon.Home, "Reset temple",
+        _resetButton = Button("ResetTemple", PokeButton.Style.Secondary, UISpriteFactory.Icon.Home, "Reset temple",
             Pad, 208f, Width - Pad * 2f, 48f, () => _temple?.ResetTemple(), 15f);
         _setPositionButton = Button("SetTemplePosition", PokeButton.Style.Secondary, UISpriteFactory.Icon.Pin, SetPositionLabel,
             Pad, 264f, Width - Pad * 2f, 48f, SetTemplePosition, 15f);
         _demolishButton = Button("Demolish", PokeButton.Style.Danger, UISpriteFactory.Icon.Crack, "Demolish temple",
             Pad, 320f, Width - Pad * 2f, 48f, () => _demolition?.Toggle(), 15f);
 
-        _panelButtons = new[] { collapse, _playButton, reset, _setPositionButton, _demolishButton };
+        _panelButtons = new[] { collapse, _playButton, _resetButton, _setPositionButton, _demolishButton };
         foreach (var b in _panelButtons)
         {
             b.BuildInteraction();
@@ -502,6 +503,9 @@ public class TempleControlPanel : MonoBehaviour
             bool down = _demolition.IsDemolished;
             _demolishButton.SetLabel(!_demolition.IsReady ? "Preparing..." : (down ? "Rebuild temple" : "Demolish temple"));
             _demolishButton.SetIcon(down ? UISpriteFactory.Icon.Home : UISpriteFactory.Icon.Crack);
+            // Nothing sensible to save while the temple is lying in pieces.
+            _setPositionButton.SetEnabled(!down);
+            _resetButton.SetEnabled(!down);
         }
 
         if (_story == null)
