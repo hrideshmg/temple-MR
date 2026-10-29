@@ -81,8 +81,13 @@ public class TempleDemolition : MonoBehaviour
     private float _gravityScale = 0.75f;
 
     [SerializeField]
-    [Tooltip("Rubble lands on an invisible ground at the temple's base this many temple-widths across.")]
+    [Tooltip("Without a room scan, rubble lands on an invisible ground at the temple's base this many temple-widths across.")]
     private float _groundSize = 6f;
+
+    [SerializeField]
+    [Tooltip("With a room scan, a safety ground this many metres across sits at the real floor height, " +
+             "catching anything that slips through gaps in the scanned floor.")]
+    private float _roomGroundSize = 30f;
 
     public bool IsDemolished { get; private set; }
 
@@ -234,6 +239,7 @@ public class TempleDemolition : MonoBehaviour
             p.Body.isKinematic = true;
             p.Body.transform.SetLocalPositionAndRotation(p.LocalPosition, p.LocalRotation);
         }
+        PlaceGround();
         _debrisRoot.gameObject.SetActive(true);
         SetIntactVisible(false);
         // Ignore state does not survive collider deactivation, so (re)apply it on every collapse.
@@ -289,6 +295,28 @@ public class TempleDemolition : MonoBehaviour
             {
                 rb.AddForce(g, ForceMode.Acceleration);
             }
+        }
+    }
+
+    /// <summary>
+    /// With a room scan the rubble falls onto the real floor and furniture (see <see cref="RoomColliders"/>),
+    /// so the fallback ground drops to the real floor. Without one it stays at the temple's base.
+    /// </summary>
+    private void PlaceGround()
+    {
+        float thickness = _localBounds.size.y * 0.5f;
+        if (RoomColliders.TryGetFloorHeight(out float floorY))
+        {
+            Vector3 floor = _debrisRoot.InverseTransformPoint(new Vector3(transform.position.x, floorY, transform.position.z));
+            float width = _roomGroundSize / Mathf.Max(transform.lossyScale.x, 1e-4f);
+            _ground.center = new Vector3(_localBounds.center.x, floor.y - thickness * 0.5f, _localBounds.center.z);
+            _ground.size = new Vector3(width, thickness, width);
+        }
+        else
+        {
+            float width = Mathf.Max(_localBounds.size.x, _localBounds.size.z) * _groundSize;
+            _ground.center = new Vector3(_localBounds.center.x, _localBounds.min.y - thickness * 0.5f, _localBounds.center.z);
+            _ground.size = new Vector3(width, thickness, width);
         }
     }
 
@@ -611,14 +639,10 @@ public class TempleDemolition : MonoBehaviour
         rootGo.SetActive(false);
         _debrisRoot = rootGo.transform;
 
-        // Invisible ground at the temple's base, generous enough to catch everything.
+        // Invisible ground, placed on every collapse by PlaceGround.
         var groundGo = new GameObject("Ground");
         groundGo.transform.SetParent(_debrisRoot, false);
         _ground = groundGo.AddComponent<BoxCollider>();
-        float width = Mathf.Max(_localBounds.size.x, _localBounds.size.z) * _groundSize;
-        float thickness = _localBounds.size.y * 0.5f;
-        _ground.center = new Vector3(_localBounds.center.x, _localBounds.min.y - thickness * 0.5f, _localBounds.center.z);
-        _ground.size = new Vector3(width, thickness, width);
 
         var chunkTransforms = new List<Transform>();
         int index = 0;
@@ -733,6 +757,7 @@ public class TempleDemolition : MonoBehaviour
         rb.linearDamping = 0.05f;
         rb.angularDamping = 0.2f;
         rb.sleepThreshold = 0.02f; // let settled rubble go to sleep instead of creeping
+        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative; // don't tunnel through thin room planes
         Vector3 worldSize = Vector3.Scale(box.size, t.lossyScale) * transform.lossyScale.x;
         rb.mass = Mathf.Clamp(worldSize.x * worldSize.y * worldSize.z * 2500f, 0.02f, 50f);
 
