@@ -12,6 +12,9 @@ using UnityEngine.UI;
 /// it along smoothly. It always tilts to face the eyes. It can be collapsed into a bright "Menu"
 /// handle that expands again on a poke.
 ///
+/// The bar above the panel (<see cref="PanelGrabBar"/>) can be grabbed to move it. Where it is
+/// dropped becomes its new docking spot relative to the body, so it keeps following from there.
+///
 /// The whole UI is built in code at startup (see <see cref="Build"/>) so there are no prefabs or
 /// art assets to keep in sync. Every button is a <see cref="PokeButton"/>, which works with both
 /// direct finger poke and hand/controller rays.
@@ -65,6 +68,14 @@ public class TempleControlPanel : MonoBehaviour
     private float _turnThreshold = 55f;
 
     [SerializeField]
+    [Tooltip("Seconds the head must stay turned past the threshold before the body counts as turned.")]
+    private float _turnDwell = 0.8f;
+
+    [SerializeField]
+    [Tooltip("Looking within this many degrees of the panel never counts as turning away.")]
+    private float _lookAtPanelAngle = 35f;
+
+    [SerializeField]
     [Tooltip("Seconds the panel takes to settle when it moves.")]
     private float _smoothTime = 0.25f;
 
@@ -84,6 +95,12 @@ public class TempleControlPanel : MonoBehaviour
     private const float PanelRadius = 22f;
     private const float ButtonRadius = 14f;
     private static readonly Vector2 HandleSize = new Vector2(168f, 60f);
+    private static readonly Vector2 GrabBarHitSize = new Vector2(150f, 34f);
+    private static readonly Vector2 GrabBarPillSize = new Vector2(80f, 9f);
+
+    // Limits on where the panel can be dragged to, as distance from the eyes.
+    private const float MinDragDistance = 0.2f;
+    private const float MaxDragDistance = 1.5f;
 
     private const string SetPositionLabel = "Set temple position";
 
@@ -103,6 +120,7 @@ public class TempleControlPanel : MonoBehaviour
     private PokeButton _playButton;
     private PokeButton _setPositionButton;
     private PokeButton _demolishButton;
+    private PanelGrabBar _grabBar;
     private RectTransform _progressFill;
     private TMP_Text _timeText;
     private AudioSource _audio;
@@ -113,12 +131,17 @@ public class TempleControlPanel : MonoBehaviour
     private float _expand;          // 0 = handle, 1 = panel
     private float _bodyYaw;
     private bool _turning;
+    private float _turnTimer;
     private float _eyeHeight;
     private Vector3 _velocity;
     private float _initTimer;
+    private Vector3 _dockOffset;    // panel position in the body frame, relative to the filtered eyes
+    private bool _wasGrabbed;
 
     private void Awake()
     {
+        _dockOffset = new Vector3((int)_side * _sideOffset, -_dropBelowEyes, _forwardOffset);
+
         if (_head == null && Camera.main != null)
         {
             _head = Camera.main.transform;
@@ -238,6 +261,11 @@ public class TempleControlPanel : MonoBehaviour
         {
             b.BuildInteraction();
         }
+
+        // ---- Grab bar floating just above the top edge: pick it up to move the panel.
+        _grabBar = PanelGrabBar.Create(_panel, transform, GrabBarHitSize, GrabBarPillSize);
+        Place(_grabBar.Rect, (Width - GrabBarHitSize.x) * 0.5f, -GrabBarHitSize.y - 4f, GrabBarHitSize.x, GrabBarHitSize.y);
+        _grabBar.BuildInteraction();
     }
 
     private void BuildHandle()
@@ -336,11 +364,42 @@ public class TempleControlPanel : MonoBehaviour
             _turning = false;
         }
 
-        // Lazy body yaw: ignore normal glancing, follow a real turn until nearly re-centred.
-        float delta = Mathf.DeltaAngle(_bodyYaw, headYaw);
-        if (!_turning && Mathf.Abs(delta) > _turnThreshold)
+        // Filter eye height so nodding / bobbing doesn't make the panel bounce.
+        _eyeHeight = Mathf.Lerp(_eyeHeight, _head.position.y, 1f - Mathf.Exp(-2f * dt));
+
+        if (_grabBar.IsGrabbed && !snapping)
         {
-            _turning = true;
+            // Held: follow the hand directly. Body yaw is frozen so turning while carrying it doesn't fight.
+            transform.position = Vector3.Lerp(transform.position, ClampToReach(_grabBar.TargetPosition),
+                1f - Mathf.Exp(-25f * dt));
+            _velocity = Vector3.zero;
+            _turning = false;
+            _wasGrabbed = true;
+            FaceHead(false, dt);
+            return;
+        }
+        if (_wasGrabbed)
+        {
+            // Dropped: re-dock at this spot, relative to the body, so it keeps following from here.
+            _wasGrabbed = false;
+            _turnTimer = 0f;
+            Vector3 eyes = new Vector3(_head.position.x, _eyeHeight, _head.position.z);
+            _dockOffset = Quaternion.Inverse(Quaternion.Euler(0f, _bodyYaw, 0f)) * (transform.position - eyes);
+        }
+
+        // Lazy body yaw: ignore normal glancing, follow a real turn until nearly re-centred.
+        // A turn only counts once it is held for a moment, and never while looking at the panel:
+        // otherwise a panel placed off to the side runs away from the user as they turn to look at it.
+        float delta = Mathf.DeltaAngle(_bodyYaw, headYaw);
+        if (!_turning)
+        {
+            bool turnedAway = Mathf.Abs(delta) > _turnThreshold && !IsLookingAtPanel(headYaw);
+            _turnTimer = turnedAway ? _turnTimer + dt : 0f;
+            if (_turnTimer > _turnDwell)
+            {
+                _turning = true;
+                _turnTimer = 0f;
+            }
         }
         if (_turning)
         {
@@ -351,24 +410,45 @@ public class TempleControlPanel : MonoBehaviour
             }
         }
 
-        // Filter eye height so nodding / bobbing doesn't make the panel bounce.
-        _eyeHeight = Mathf.Lerp(_eyeHeight, _head.position.y, 1f - Mathf.Exp(-2f * dt));
-
         Quaternion body = Quaternion.Euler(0f, _bodyYaw, 0f);
-        Vector3 basePos = new Vector3(_head.position.x, _eyeHeight - _dropBelowEyes, _head.position.z);
-        Vector3 target = basePos + body * new Vector3((int)_side * _sideOffset, 0f, _forwardOffset);
+        Vector3 eyePos = new Vector3(_head.position.x, _eyeHeight, _head.position.z);
+        Vector3 target = eyePos + body * _dockOffset;
 
         transform.position = snapping
             ? target
             : Vector3.SmoothDamp(transform.position, target, ref _velocity, _smoothTime, Mathf.Infinity, dt);
 
+        FaceHead(snapping, dt);
+    }
+
+    private void FaceHead(bool snap, float dt)
+    {
         // Face the eyes. The canvas front faces -Z, so +Z points away from the viewer.
         Vector3 toPanel = transform.position - _head.position;
         if (toPanel.sqrMagnitude > 0.0001f)
         {
             Quaternion look = Quaternion.LookRotation(toPanel.normalized, Vector3.up);
-            transform.rotation = snapping ? look : Quaternion.Slerp(transform.rotation, look, 1f - Mathf.Exp(-8f * dt));
+            transform.rotation = snap ? look : Quaternion.Slerp(transform.rotation, look, 1f - Mathf.Exp(-8f * dt));
         }
+    }
+
+    /// <summary>Keeps a dragged position within a sensible distance of the eyes.</summary>
+    private Vector3 ClampToReach(Vector3 position)
+    {
+        Vector3 fromEyes = position - _head.position;
+        float d = fromEyes.magnitude;
+        if (d < 0.0001f)
+        {
+            return _head.position + _head.forward * MinDragDistance;
+        }
+        return _head.position + fromEyes * (Mathf.Clamp(d, MinDragDistance, MaxDragDistance) / d);
+    }
+
+    private bool IsLookingAtPanel(float headYaw)
+    {
+        Vector3 toPanel = transform.position - _head.position;
+        float panelYaw = Mathf.Atan2(toPanel.x, toPanel.z) * Mathf.Rad2Deg;
+        return Mathf.Abs(Mathf.DeltaAngle(headYaw, panelYaw)) < _lookAtPanelAngle;
     }
 
     private float HeadYaw()
@@ -410,6 +490,7 @@ public class TempleControlPanel : MonoBehaviour
             b.SetInteractable(!_collapsed);
         }
         _handleButton.SetInteractable(_collapsed);
+        _grabBar.SetInteractable(!_collapsed);
         _panel.gameObject.SetActive(k > 0.001f);
         _handle.gameObject.SetActive(k < 0.999f);
     }
