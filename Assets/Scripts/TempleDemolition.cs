@@ -20,7 +20,7 @@ using Random = UnityEngine.Random;
 /// <see cref="Demolish"/> trembles the temple, swaps it for the pieces and releases them bottom-first:
 /// lower pieces kick outward, upper ones sag inward. With <see cref="_explosive"/> on, pieces that
 /// overlap at rest shove each other apart and the rubble bursts across the room; off, it folds into a
-/// heap where it stood. <see cref="Rebuild"/> puts the intact temple back. Requires Read/Write on the model import.
+/// heap where it stood. Every piece can be picked up by hand and thrown. <see cref="Rebuild"/> puts the intact temple back. Requires Read/Write on the model import.
 /// Attach to the Temple root.
 /// </summary>
 public class TempleDemolition : MonoBehaviour
@@ -45,6 +45,12 @@ public class TempleDemolition : MonoBehaviour
     [SerializeField]
     [Tooltip("Meshes smaller than this fraction of the temple's size attach to the nearest chunk.")]
     private float _tinySizeFraction = 0.012f;
+
+    [SerializeField]
+    [Tooltip("Each piece's collision box as a fraction of its mesh bounds. Below 1 the mesh pokes out " +
+             "of the box and sinks into whatever it lands on.")]
+    [Range(0.5f, 1f)]
+    private float _colliderFit = 1f;
 
     [Header("Collapse")]
     [SerializeField]
@@ -260,7 +266,9 @@ public class TempleDemolition : MonoBehaviour
             for (int i = 0; i < _pieces.Count; i++)
             {
                 Piece p = _pieces[i];
-                if (released[i] || elapsed < p.Height * _releaseSpread)
+                // A piece grabbed before its turn waits until it's let go; Grabbable restores the
+                // kinematic state it had when grabbed, and releasing it under the hand would fight the grab.
+                if (released[i] || elapsed < p.Height * _releaseSpread || p.Body.IsLocked())
                 {
                     continue;
                 }
@@ -741,11 +749,11 @@ public class TempleDemolition : MonoBehaviour
         go.AddComponent<MeshFilter>().sharedMesh = mesh;
         go.AddComponent<MeshRenderer>().sharedMaterials = DoubleSided(materials);
 
-        // A slightly shrunken box. Neighbouring boxes still overlap at rest; in explosive mode that
-        // overlap is what flings the rubble outward when the pieces turn dynamic.
+        // A box around the mesh. Neighbouring boxes overlap at rest; in explosive mode that overlap is
+        // what flings the rubble outward when the pieces turn dynamic.
         var box = go.AddComponent<BoxCollider>();
         Bounds b = mesh.bounds;
-        Vector3 boxSize = b.size * 0.8f;
+        Vector3 boxSize = b.size * _colliderFit;
         float minThickness = MaxComponent(b.size) * 0.15f;
         box.center = b.center;
         box.size = Vector3.Max(boxSize, Vector3.one * minThickness);
@@ -760,6 +768,16 @@ public class TempleDemolition : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative; // don't tunnel through thin room planes
         Vector3 worldSize = Vector3.Scale(box.size, t.lossyScale) * transform.lossyScale.x;
         rb.mass = Mathf.Clamp(worldSize.x * worldSize.y * worldSize.z * 2500f, 0.02f, 50f);
+
+        // Pick up with either hand and throw on release: Grabbable keeps the body kinematic while held,
+        // then hands it the hand's velocity when let go.
+        var grabbable = go.AddComponent<Grabbable>();
+        grabbable.InjectOptionalRigidbody(rb);
+        grabbable.InjectOptionalKinematicWhileSelected(true);
+        grabbable.InjectOptionalThrowWhenUnselected(true);
+        var handGrab = go.AddComponent<HandGrabInteractable>();
+        handGrab.InjectRigidbody(rb);
+        handGrab.InjectOptionalPointableElement(grabbable);
 
         // Where in the temple this piece sits drives the collapse choreography.
         Vector3 centre = toTemple.MultiplyPoint3x4(b.center);
@@ -802,9 +820,9 @@ public class TempleDemolition : MonoBehaviour
                     copy.SetFloat("_Cull", (float)CullMode.Off);
                 }
                 copy.doubleSidedGI = true;
-                if (copy.HasProperty("_HardOcclusion"))
+                if (copy.HasProperty("_NoOcclusion"))
                 {
-                    copy.SetFloat("_HardOcclusion", 1f); // soft occlusion's halo swamps small pieces
+                    copy.SetFloat("_NoOcclusion", 1f); // real-world occlusion fringes and swallows small pieces
                 }
                 _doubleSided[m] = copy;
             }

@@ -17,6 +17,7 @@ Shader "TestHands/Occluded Lit"
         _FloorBand("Floor Band Height (m)", Float) = 0.15
         // Soft occlusion blends a halo around real objects, which swamps small pieces; they cut off hard instead.
         [Toggle] _HardOcclusion("Hard Occlusion", Float) = 0
+        [Toggle] _NoOcclusion("Never Occluded", Float) = 0
     }
 
     SubShader
@@ -78,6 +79,7 @@ Shader "TestHands/Occluded Lit"
                 float _FloorDepthBias;
                 float _FloorBand;
                 float _HardOcclusion;
+                float _NoOcclusion;
             CBUFFER_END
 
             // World height of the scanned floor, set by DepthOcclusion once the room loads.
@@ -98,6 +100,10 @@ Shader "TestHands/Occluded Lit"
             float Visibility(float3 positionWS)
             {
             #if defined(HARD_OCCLUSION) || defined(SOFT_OCCLUSION)
+                if (_NoOcclusion > 0.5)
+                {
+                    return 1.0;
+                }
                 float4 depthSpace = mul(_EnvironmentDepthReprojectionMatrices[unity_StereoEyeIndex], float4(positionWS, 1.0));
                 float2 uv = (depthSpace.xy / depthSpace.w + 1.0f) * 0.5f;
                 float linearSceneDepth = (1.0f / ((depthSpace.z / depthSpace.w) + _EnvironmentDepthZBufferParams.y)) * _EnvironmentDepthZBufferParams.x;

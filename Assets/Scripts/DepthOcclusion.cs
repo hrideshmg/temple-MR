@@ -12,10 +12,10 @@ using UnityEngine;
 /// temple rubble) inherit it. When depth is unavailable (Link without Spatial Data, the simulator,
 /// older headsets) nothing is changed and the scene renders as before.
 ///
-/// Soft occlusion is enabled scene-wide for smooth edges on the intact temple. It blends a wide halo
-/// around every real object, which shows as fringing on small rubble, so TempleDemolition switches its
-/// rubble materials to hard occlusion (_HardOcclusion in OccludedLit.shader). The scanned floor height is passed to the shader so things lying on the
-/// floor aren't swallowed by it (see OcclusionBias in OccludedLit.shader).
+/// Soft occlusion is enabled scene-wide for smooth edges on the intact temple. Small rubble fringes and
+/// gets swallowed by the floor, so TempleDemolition turns occlusion off for its rubble materials
+/// (_NoOcclusion in OccludedLit.shader). The scanned floor height is passed to the shader so things
+/// lying on the floor aren't swallowed by it (see OcclusionBias in OccludedLit.shader).
 /// </summary>
 public class DepthOcclusion : MonoBehaviour
 {
