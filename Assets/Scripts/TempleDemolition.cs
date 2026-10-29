@@ -802,6 +802,10 @@ public class TempleDemolition : MonoBehaviour
                     copy.SetFloat("_Cull", (float)CullMode.Off);
                 }
                 copy.doubleSidedGI = true;
+                if (copy.HasProperty("_HardOcclusion"))
+                {
+                    copy.SetFloat("_HardOcclusion", 1f); // soft occlusion's halo swamps small pieces
+                }
                 _doubleSided[m] = copy;
             }
             result[i] = copy;
