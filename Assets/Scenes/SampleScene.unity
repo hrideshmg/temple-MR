@@ -1309,6 +1309,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TempleResetter
   _target: {fileID: 0}
+  _placeInFrontOfPlayer: 1
+  _startGap: 0.5
+  _head: {fileID: 0}
 --- !u!114 &1257254195
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2431,6 +2434,8 @@ MonoBehaviour:
   _forwardOffset: 0.32
   _dropBelowEyes: 0.4
   _turnThreshold: 55
+  _turnDwell: 0.8
+  _lookAtPanelAngle: 35
   _smoothTime: 0.25
   _canvasScale: 0.0008
   _startCollapsed: 0
@@ -2492,10 +2497,18 @@ PrefabInstance:
       propertyPath: _centerEyeCamera
       value: 
       objectReference: {fileID: 757122134}
+    - target: {fileID: 1566377277047150759, guid: 0a7d2469f24041c4284c66706f84c45e, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2336446269904782542, guid: 0a7d2469f24041c4284c66706f84c45e, type: 3}
       propertyPath: _centerEyeCamera
       value: 
       objectReference: {fileID: 757122134}
+    - target: {fileID: 3180938714467287755, guid: 0a7d2469f24041c4284c66706f84c45e, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4148778239110795873, guid: 0a7d2469f24041c4284c66706f84c45e, type: 3}
       propertyPath: m_Name
       value: '[BuildingBlock] OVRComprehensiveInteractionRig'
