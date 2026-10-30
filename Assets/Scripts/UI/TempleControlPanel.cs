@@ -47,6 +47,9 @@ public class TempleControlPanel : MonoBehaviour
     [Tooltip("Defaults to the TempleDemolition on the temple.")]
     private TempleDemolition _demolition;
 
+    private NetworkedTemple _networkedTemple;
+    private NetworkedStory _networkedStory;
+
     [SerializeField]
     [Tooltip("Optional click sound played on every press.")]
     private AudioClip _clickSound;
@@ -174,6 +177,9 @@ public class TempleControlPanel : MonoBehaviour
         {
             _demolition = _temple.GetComponent<TempleDemolition>();
         }
+        // Multiplayer wrappers; they act locally when there's no session.
+        _networkedTemple = _temple != null ? _temple.GetComponent<NetworkedTemple>() : null;
+        _networkedStory = _story != null ? _story.GetComponent<NetworkedStory>() : null;
 
         _audio = gameObject.AddComponent<AudioSource>();
         _audio.playOnAwake = false;
@@ -233,7 +239,7 @@ public class TempleControlPanel : MonoBehaviour
 
         // ---- Story
         _playButton = Button("PlayStory", PokeButton.Style.Primary, UISpriteFactory.Icon.Play, "Play story",
-            Pad, 82f, Width - Pad * 2f, 52f, () => _story?.TogglePlayPause(), 16f);
+            Pad, 82f, Width - Pad * 2f, 52f, TogglePlayPause, 16f);
 
         var track = PokeButton.NewImage("ProgressTrack", _panel, UISpriteFactory.Rounded, new Color(1f, 1f, 1f, 0.10f));
         Place(track.rectTransform, Pad, 144f, Width - Pad * 2f, 4f);
@@ -253,7 +259,7 @@ public class TempleControlPanel : MonoBehaviour
         // ---- Temple
         SectionLabel("TEMPLE", 190f);
         _resetButton = Button("ResetTemple", PokeButton.Style.Secondary, UISpriteFactory.Icon.Home, "Reset temple",
-            Pad, 208f, Width - Pad * 2f, 48f, () => _temple?.ResetTemple(), 15f);
+            Pad, 208f, Width - Pad * 2f, 48f, ResetTemple, 15f);
         _setPositionButton = Button("SetTemplePosition", PokeButton.Style.Secondary, UISpriteFactory.Icon.Pin, SetPositionLabel,
             Pad, 264f, Width - Pad * 2f, 48f, SetTemplePosition, 15f);
         _demolishButton = Button("Demolish", PokeButton.Style.Danger, UISpriteFactory.Icon.Crack, "Demolish temple",
@@ -352,6 +358,30 @@ public class TempleControlPanel : MonoBehaviour
 
     // =====================================================================  actions
 
+    private void TogglePlayPause()
+    {
+        if (_networkedStory != null)
+        {
+            _networkedStory.TogglePlayPause();
+        }
+        else
+        {
+            _story?.TogglePlayPause();
+        }
+    }
+
+    private void ResetTemple()
+    {
+        if (_networkedTemple != null)
+        {
+            _networkedTemple.RequestReset();
+        }
+        else
+        {
+            _temple?.ResetTemple();
+        }
+    }
+
     private void SetTemplePosition()
     {
         // Nothing sensible to save while the temple is lying in pieces.
@@ -359,7 +389,14 @@ public class TempleControlPanel : MonoBehaviour
         {
             return;
         }
-        _temple.SetHomeToCurrent();
+        if (_networkedTemple != null)
+        {
+            _networkedTemple.RequestSetHome();
+        }
+        else
+        {
+            _temple.SetHomeToCurrent();
+        }
 
         // Brief confirmation on the button itself.
         if (_savedFeedback != null)
@@ -607,7 +644,8 @@ public class TempleControlPanel : MonoBehaviour
             _demolishButton.SetIcon(down ? UISpriteFactory.Icon.Home : UISpriteFactory.Icon.Crack);
             // Nothing sensible to save while the temple is lying in pieces.
             _setPositionButton.SetEnabled(!down);
-            _resetButton.SetEnabled(!down);
+            // The host ignores a reset while another player is holding the temple.
+            _resetButton.SetEnabled(!down && (_networkedTemple == null || !_networkedTemple.IsHeldByOther));
         }
 
         if (_devOpen)

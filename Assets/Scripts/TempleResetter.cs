@@ -128,15 +128,25 @@ public class TempleResetter : MonoBehaviour
         return bounds ?? new Bounds(_target.position, Vector3.zero);
     }
 
+    public Vector3 HomePosition => _homePosition;
+    public Quaternion HomeRotation => _homeRotation;
+    public Vector3 HomeScale => _homeScale;
+
     /// <summary>
     /// Makes the temple's current position, rotation and scale the pose that
     /// <see cref="ResetTemple"/> returns to. Wired to the "Set temple position" button.
     /// </summary>
     public void SetHomeToCurrent()
     {
-        _homePosition = _target.position;
-        _homeRotation = _target.rotation;
-        _homeScale = _target.localScale;
+        SetHome(_target.position, _target.rotation, _target.localScale);
+    }
+
+    /// <summary>Sets the pose <see cref="ResetTemple"/> returns to (e.g. the host's, in multiplayer).</summary>
+    public void SetHome(Vector3 position, Quaternion rotation, Vector3 scale)
+    {
+        _homePosition = position;
+        _homeRotation = rotation;
+        _homeScale = scale;
     }
 
     /// <summary>

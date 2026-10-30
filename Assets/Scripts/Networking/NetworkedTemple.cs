@@ -14,6 +14,9 @@ using UnityEngine;
 /// While another player holds it, it can't be grabbed here at all. Ownership stays with the last
 /// player to let go, and returns to the host if they disconnect.
 ///
+/// The temple's home pose lives on the host too: "Set temple position" and "Reset temple" from any
+/// player go through the host, so everyone shares one home and resets move the temple for everyone.
+///
 /// Without a session this does nothing and the temple behaves as in single-player.
 /// Attach to the Temple root, next to its <see cref="Grabbable"/> and <see cref="NetworkObject"/>.
 /// </summary>
@@ -24,8 +27,14 @@ public class NetworkedTemple : NetworkBehaviour
 
     private readonly NetworkVariable<ulong> _holder = new NetworkVariable<ulong>(Nobody);
 
+    // The pose Reset returns to, set by the host so every player resets to the same place.
+    private readonly NetworkVariable<Vector3> _homePosition = new NetworkVariable<Vector3>();
+    private readonly NetworkVariable<Quaternion> _homeRotation = new NetworkVariable<Quaternion>(Quaternion.identity);
+    private readonly NetworkVariable<Vector3> _homeScale = new NetworkVariable<Vector3>(Vector3.one);
+
     private Grabbable _grabbable;
     private TempleDemolition _demolition;
+    private TempleResetter _resetter;
     private readonly List<Behaviour> _interactables = new List<Behaviour>();
     private bool _heldLocally;
 
@@ -36,6 +45,7 @@ public class NetworkedTemple : NetworkBehaviour
     {
         _grabbable = GetComponent<Grabbable>();
         _demolition = GetComponent<TempleDemolition>();
+        _resetter = GetComponent<TempleResetter>();
         _interactables.AddRange(GetComponentsInChildren<HandGrabInteractable>(true));
         _interactables.AddRange(GetComponentsInChildren<GrabInteractable>(true));
 
@@ -53,6 +63,14 @@ public class NetworkedTemple : NetworkBehaviour
         if (IsServer)
         {
             NetworkManager.OnClientDisconnectCallback += OnClientDisconnected;
+            WriteHome();
+        }
+        else
+        {
+            _homePosition.OnValueChanged += OnHomeChanged;
+            _homeRotation.OnValueChanged += OnHomeChanged;
+            _homeScale.OnValueChanged += OnHomeChanged;
+            ApplyHome();
         }
         ApplyLock();
     }
@@ -60,6 +78,9 @@ public class NetworkedTemple : NetworkBehaviour
     public override void OnNetworkDespawn()
     {
         _holder.OnValueChanged -= OnHolderChanged;
+        _homePosition.OnValueChanged -= OnHomeChanged;
+        _homeRotation.OnValueChanged -= OnHomeChanged;
+        _homeScale.OnValueChanged -= OnHomeChanged;
         if (_demolition != null)
         {
             _demolition.DemolishedChanged -= OnDemolishedChanged;
@@ -96,7 +117,61 @@ public class NetworkedTemple : NetworkBehaviour
         }
     }
 
+    // =====================================================================  panel actions
+
+    /// <summary>"Set temple position": the temple's current pose becomes home, for every player.</summary>
+    public void RequestSetHome()
+    {
+        if (!IsSpawned)
+        {
+            _resetter.SetHomeToCurrent();
+            return;
+        }
+        SetHomeRpc();
+    }
+
+    /// <summary>"Reset temple": moves the temple back home, for every player.</summary>
+    public void RequestReset()
+    {
+        if (!IsSpawned)
+        {
+            _resetter.ResetTemple();
+            return;
+        }
+        ResetRpc();
+    }
+
     // =====================================================================  host
+
+    [Rpc(SendTo.Server)]
+    private void SetHomeRpc()
+    {
+        // The host's view of the temple's pose is the shared one.
+        _resetter.SetHomeToCurrent();
+        WriteHome();
+    }
+
+    [Rpc(SendTo.Server)]
+    private void ResetRpc()
+    {
+        if (_holder.Value != Nobody)
+        {
+            return; // someone is holding it; don't yank it out of their hand
+        }
+        // Only the owner's moves are sent, so the host takes the temple back before moving it.
+        if (NetworkObject.OwnerClientId != NetworkManager.ServerClientId)
+        {
+            NetworkObject.ChangeOwnership(NetworkManager.ServerClientId);
+        }
+        _resetter.ResetTemple();
+    }
+
+    private void WriteHome()
+    {
+        _homePosition.Value = _resetter.HomePosition;
+        _homeRotation.Value = _resetter.HomeRotation;
+        _homeScale.Value = _resetter.HomeScale;
+    }
 
     [Rpc(SendTo.Server)]
     private void GrabRpc(RpcParams rpcParams = default)
@@ -150,6 +225,16 @@ public class NetworkedTemple : NetworkBehaviour
     private void OnHolderChanged(ulong previous, ulong current)
     {
         ApplyLock();
+    }
+
+    private void OnHomeChanged<T>(T previous, T current)
+    {
+        ApplyHome();
+    }
+
+    private void ApplyHome()
+    {
+        _resetter.SetHome(_homePosition.Value, _homeRotation.Value, _homeScale.Value);
     }
 
     private void OnDemolishedChanged(bool demolished)

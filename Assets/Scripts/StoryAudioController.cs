@@ -91,6 +91,35 @@ public class StoryAudioController : MonoBehaviour
         RefreshLabel();
     }
 
+    /// <summary>Plays from the given position in seconds (used to follow the host in multiplayer).</summary>
+    public void PlayFrom(float time)
+    {
+        if (_audioSource.clip == null)
+        {
+            return;
+        }
+        _audioSource.time = Mathf.Clamp(time, 0f, Length - 0.01f);
+        if (!_audioSource.isPlaying)
+        {
+            _audioSource.Play();
+        }
+        _wasPlaying = true;
+        RefreshLabel();
+    }
+
+    /// <summary>Pauses at the given position in seconds (used to follow the host in multiplayer).</summary>
+    public void PauseAt(float time)
+    {
+        if (_audioSource.clip == null)
+        {
+            return;
+        }
+        _audioSource.Pause();
+        _audioSource.time = Mathf.Clamp(time, 0f, Length - 0.01f);
+        _wasPlaying = false;
+        RefreshLabel();
+    }
+
     private void RefreshLabel()
     {
         if (_buttonLabel != null)
