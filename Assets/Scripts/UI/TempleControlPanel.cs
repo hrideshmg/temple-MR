@@ -49,6 +49,7 @@ public class TempleControlPanel : MonoBehaviour
 
     private NetworkedTemple _networkedTemple;
     private NetworkedStory _networkedStory;
+    private NetworkedDemolition _networkedDemolition;
 
     [SerializeField]
     [Tooltip("Optional click sound played on every press.")]
@@ -180,6 +181,7 @@ public class TempleControlPanel : MonoBehaviour
         // Multiplayer wrappers; they act locally when there's no session.
         _networkedTemple = _temple != null ? _temple.GetComponent<NetworkedTemple>() : null;
         _networkedStory = _story != null ? _story.GetComponent<NetworkedStory>() : null;
+        _networkedDemolition = _temple != null ? _temple.GetComponent<NetworkedDemolition>() : null;
 
         _audio = gameObject.AddComponent<AudioSource>();
         _audio.playOnAwake = false;
@@ -263,7 +265,7 @@ public class TempleControlPanel : MonoBehaviour
         _setPositionButton = Button("SetTemplePosition", PokeButton.Style.Secondary, UISpriteFactory.Icon.Pin, SetPositionLabel,
             Pad, 264f, Width - Pad * 2f, 48f, SetTemplePosition, 15f);
         _demolishButton = Button("Demolish", PokeButton.Style.Danger, UISpriteFactory.Icon.Crack, "Demolish temple",
-            Pad, 320f, Width - Pad * 2f, 48f, () => _demolition?.Toggle(), 15f);
+            Pad, 320f, Width - Pad * 2f, 48f, ToggleDemolition, 15f);
 
         Divider(380f);
 
@@ -367,6 +369,18 @@ public class TempleControlPanel : MonoBehaviour
         else
         {
             _story?.TogglePlayPause();
+        }
+    }
+
+    private void ToggleDemolition()
+    {
+        if (_networkedDemolition != null)
+        {
+            _networkedDemolition.RequestToggle();
+        }
+        else
+        {
+            _demolition?.Toggle();
         }
     }
 
@@ -642,6 +656,8 @@ public class TempleControlPanel : MonoBehaviour
             bool down = _demolition.IsDemolished;
             _demolishButton.SetLabel(!_demolition.IsReady ? "Preparing..." : (down ? "Rebuild temple" : "Demolish temple"));
             _demolishButton.SetIcon(down ? UISpriteFactory.Icon.Home : UISpriteFactory.Icon.Crack);
+            // The host won't demolish the temple out of another player's hands.
+            _demolishButton.SetEnabled(down || _networkedTemple == null || !_networkedTemple.IsHeldByOther);
             // Nothing sensible to save while the temple is lying in pieces.
             _setPositionButton.SetEnabled(!down);
             // The host ignores a reset while another player is holding the temple.

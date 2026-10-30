@@ -38,6 +38,9 @@ public class NetworkedTemple : NetworkBehaviour
     private readonly List<Behaviour> _interactables = new List<Behaviour>();
     private bool _heldLocally;
 
+    /// <summary>True while any player is holding the temple.</summary>
+    public bool IsHeld => IsSpawned && _holder.Value != Nobody;
+
     /// <summary>True while another player is holding the temple.</summary>
     public bool IsHeldByOther => IsSpawned && _holder.Value != Nobody && _holder.Value != NetworkManager.LocalClientId;
 
@@ -158,12 +161,18 @@ public class NetworkedTemple : NetworkBehaviour
         {
             return; // someone is holding it; don't yank it out of their hand
         }
-        // Only the owner's moves are sent, so the host takes the temple back before moving it.
-        if (NetworkObject.OwnerClientId != NetworkManager.ServerClientId)
+        TakeOwnershipForHost();
+        _resetter.ResetTemple();
+    }
+
+    /// <summary>Host only: takes the temple back so moves made here are sent to everyone.</summary>
+    public void TakeOwnershipForHost()
+    {
+        // Only the owner's moves are sent.
+        if (IsServer && NetworkObject.OwnerClientId != NetworkManager.ServerClientId)
         {
             NetworkObject.ChangeOwnership(NetworkManager.ServerClientId);
         }
-        _resetter.ResetTemple();
     }
 
     private void WriteHome()

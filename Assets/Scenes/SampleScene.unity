@@ -1422,6 +1422,22 @@ MonoBehaviour:
   SwitchTransformSpaceWhenParented: 0
   Interpolate: 1
   SlerpPosition: 0
+--- !u!114 &1257254199
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1257254188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a78ec61542e64104c883a2561f125293, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NetworkedDemolition
+  ShowTopMostFoldoutHeaderGroup: 1
+  _sendRate: 15
+  _snapshotInterval: 2
+  _smoothing: 18
 --- !u!1 &1327628385
 GameObject:
   m_ObjectHideFlags: 0
@@ -2096,6 +2112,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 49c2649914e102242a82ffe4ee8db6ef, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1257254197}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 49c2649914e102242a82ffe4ee8db6ef, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1257254199}
   m_SourcePrefab: {fileID: 100100000, guid: 49c2649914e102242a82ffe4ee8db6ef, type: 3}
 --- !u!1 &1629222886
 GameObject:

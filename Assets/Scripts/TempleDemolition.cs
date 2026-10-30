@@ -102,6 +102,29 @@ public class TempleDemolition : MonoBehaviour
 
     public event Action<bool> DemolishedChanged;
 
+    /// <summary>
+    /// On: a remote copy in multiplayer. The collapse still trembles and swaps in the rubble, but the
+    /// pieces stay kinematic and are posed from the network instead of simulated here.
+    /// </summary>
+    public bool Driven { get; set; }
+
+    public int PieceCount => _pieces.Count;
+
+    public Rigidbody GetPieceBody(int index) => _pieces[index].Body;
+
+    /// <summary>Releases a piece into the simulation with the given velocity (e.g. thrown by another player).</summary>
+    public void ThrowPiece(int index, Vector3 velocity, Vector3 angularVelocity)
+    {
+        Rigidbody rb = _pieces[index].Body;
+        rb.isKinematic = false;
+        rb.linearVelocity = velocity;
+        rb.angularVelocity = angularVelocity;
+        if (!_falling.Contains(rb))
+        {
+            _falling.Add(rb);
+        }
+    }
+
     private struct Piece
     {
         public Rigidbody Body;
@@ -252,6 +275,11 @@ public class TempleDemolition : MonoBehaviour
         foreach (var (a, b) in _ignoredPairs)
         {
             Physics.IgnoreCollision(a, b, !_explosive);
+        }
+        if (Driven)
+        {
+            _routine = null; // the network moves the pieces from here
+            yield break;
         }
 
         // 3. Release bottom-first. Each piece is given a velocity that blends from an outward
