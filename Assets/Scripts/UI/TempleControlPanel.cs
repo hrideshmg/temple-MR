@@ -93,7 +93,7 @@ public class TempleControlPanel : MonoBehaviour
 
     // Layout (canvas units, 1 unit = _canvasScale metres).
     private const float Width = 240f;
-    private const float Height = 384f;
+    private const float Height = 484f;
     private const float Pad = 16f;
     private const float PanelRadius = 22f;
     private const float ButtonRadius = 14f;
@@ -133,6 +133,9 @@ public class TempleControlPanel : MonoBehaviour
     private PokeButton _rescanButton;
     private PokeButton _collidersButton;
     private bool _devOpen;
+    private PokeButton _hostButton;
+    private PokeButton _joinButton;
+    private TMP_Text _sessionText;
     private PanelGrabBar _grabBar;
     private RectTransform _progressFill;
     private TMP_Text _timeText;
@@ -256,7 +259,23 @@ public class TempleControlPanel : MonoBehaviour
         _demolishButton = Button("Demolish", PokeButton.Style.Danger, UISpriteFactory.Icon.Crack, "Demolish temple",
             Pad, 320f, Width - Pad * 2f, 48f, () => _demolition?.Toggle(), 15f);
 
-        _panelButtons = new[] { _devButton, collapse, _playButton, _resetButton, _setPositionButton, _demolishButton };
+        Divider(380f);
+
+        // ---- Session
+        SectionLabel("SESSION", 392f);
+        _sessionText = Text("SessionStatus", "Offline", 10.5f, FontStyles.Normal, TextSecondary,
+            Pad, 408f, Width - Pad * 2f, 14f);
+        _sessionText.overflowMode = TextOverflowModes.Ellipsis;
+        float half = (Width - Pad * 2f - 8f) * 0.5f;
+        _hostButton = Button("HostSession", PokeButton.Style.Secondary, null, "Host",
+            Pad, 428f, half, 40f, HostOrLeave, 15f);
+        _joinButton = Button("JoinSession", PokeButton.Style.Secondary, null, "Join",
+            Pad + half + 8f, 428f, half, 40f, () => NetworkSession.Instance?.Join(), 15f);
+
+        _panelButtons = new[]
+        {
+            _devButton, collapse, _playButton, _resetButton, _setPositionButton, _demolishButton, _hostButton, _joinButton,
+        };
         foreach (var b in _panelButtons)
         {
             b.BuildInteraction();
@@ -364,6 +383,24 @@ public class TempleControlPanel : MonoBehaviour
     {
         _devOpen = !_devOpen;
         ApplyExpand();
+    }
+
+    /// <summary>Host while offline; leave (or cancel a join) while in a session.</summary>
+    private void HostOrLeave()
+    {
+        var session = NetworkSession.Instance;
+        if (session == null)
+        {
+            return;
+        }
+        if (session.Current == NetworkSession.State.Offline)
+        {
+            session.Host();
+        }
+        else
+        {
+            session.Leave();
+        }
     }
 
     public void Collapse()
@@ -577,11 +614,14 @@ public class TempleControlPanel : MonoBehaviour
         {
             bool busy = RoomColliders.IsBusy;
             _rescanButton.SetLabel(busy ? "Scanning..." : "Rescan room");
-            _rescanButton.SetEnabled(!busy);
+            // A guest's room is the host's shared scan; rescanning would replace it and break alignment.
+            _rescanButton.SetEnabled(!busy && !SharedSpace.UsingHostRoom);
             bool shown = RoomColliders.CollidersVisible;
             _collidersButton.SetLabel(shown ? "Hide colliders" : "Show colliders");
             _collidersButton.Toggled = shown;
         }
+
+        UpdateSessionStatus();
 
         if (_story == null)
         {
@@ -595,6 +635,57 @@ public class TempleControlPanel : MonoBehaviour
         float t = _story.PlaybackTime;
         _progressFill.anchorMax = new Vector2(len > 0f ? Mathf.Clamp01(t / len) : 0f, 1f);
         _timeText.text = $"{FormatTime(t)} / {FormatTime(len)}";
+    }
+
+    private void UpdateSessionStatus()
+    {
+        var session = NetworkSession.Instance;
+        if (session == null)
+        {
+            _sessionText.text = "Multiplayer unavailable";
+            _hostButton.SetEnabled(false);
+            _joinButton.SetEnabled(false);
+            return;
+        }
+
+        var state = session.Current;
+        _hostButton.SetLabel(state == NetworkSession.State.Offline ? "Host"
+            : state == NetworkSession.State.Searching || state == NetworkSession.State.Joining ? "Cancel" : "Leave");
+        _joinButton.SetEnabled(state == NetworkSession.State.Offline);
+        _sessionText.text = state switch
+        {
+            // Without discovery, guests need the address typed in, so show it instead of the room status.
+            NetworkSession.State.Hosting => session.GroupUuid == System.Guid.Empty
+                ? $"Hosting on {session.Address} · {PlayerText(session.PlayerCount)}"
+                : $"Hosting · {PlayerText(session.PlayerCount)}{SpaceStatus()}",
+            NetworkSession.State.Searching => "Looking for a nearby host...",
+            NetworkSession.State.Joining => $"Joining {session.Address}...",
+            NetworkSession.State.Joined => $"Joined{SpaceStatus()}",
+            _ => string.IsNullOrEmpty(session.LastError) ? "Offline" : session.LastError,
+        };
+    }
+
+    private static string PlayerText(int count)
+    {
+        return count == 1 ? "1 player" : $"{count} players";
+    }
+
+    private static string SpaceStatus()
+    {
+        var space = SharedSpace.Instance;
+        if (space == null)
+        {
+            return "";
+        }
+        return space.Current switch
+        {
+            SharedSpace.State.Sharing => " · sharing room...",
+            SharedSpace.State.Shared => " · room shared",
+            SharedSpace.State.Aligning => " · aligning...",
+            SharedSpace.State.Aligned => " · aligned",
+            SharedSpace.State.Failed => " · " + space.Error,
+            _ => "",
+        };
     }
 
     // =====================================================================  layout helpers
