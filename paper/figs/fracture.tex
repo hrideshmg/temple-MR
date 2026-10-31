@@ -1,0 +1,29 @@
+% Fracture and collapse pipeline in TempleDemolition.cs.
+\begin{tikzpicture}[
+  font=\scriptsize,
+  stage/.style={draw, rounded corners=1pt, fill=orange!10, align=center, inner sep=2.5pt, text width=1.95cm, minimum height=9mm},
+  run/.style={stage, fill=red!8},
+  >=stealth, node distance=3.5mm
+]
+\node[stage] (a) {Collect meshes in temple space};
+\node[stage, right=of a] (b) {Classify: split / whole / tiny};
+\node[stage, right=of b] (c) {40 seeds, best-candidate (seed 7)};
+\node[stage, below=5mm of c] (d) {Triangle $\rightarrow$ nearest seed};
+\node[stage, left=of d] (e) {Rebuild chunk meshes, pivot};
+\node[stage, left=of e] (f) {Box colliders, rigid bodies, grab};
+\node[run, below=5mm of f] (g) {Tremble 0.45\,s};
+\node[run, right=of g] (h) {Swap intact for pieces};
+\node[run, right=of h] (i) {Release bottom-first, radial kick};
+\draw[->] (a) -- (b); \draw[->] (b) -- (c); \draw[->] (c) -- (d);
+\draw[->] (d) -- (e); \draw[->] (e) -- (f); \draw[->] (f) -- (g);
+\draw[->] (g) -- (h); \draw[->] (h) -- (i);
+\draw[decorate, decoration={brace, amplitude=3pt}, gray]
+  ([xshift=1.5mm]c.north east) -- ([xshift=1.5mm]d.south east)
+  node[midway, right=2pt, align=left, text=gray] {worker\\thread};
+\draw[decorate, decoration={brace, amplitude=3pt, mirror}, gray]
+  ([xshift=-1.5mm]a.north west) -- ([xshift=-1.5mm]f.south west)
+  node[midway, left=2pt, align=right, text=gray] {at\\start};
+\draw[decorate, decoration={brace, amplitude=3pt, mirror}, gray]
+  ([xshift=-1.5mm]g.north west) -- ([xshift=-1.5mm]g.south west)
+  node[midway, left=2pt, align=right, text=gray] {on\\demolish};
+\end{tikzpicture}
