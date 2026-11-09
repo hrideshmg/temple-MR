@@ -4,8 +4,7 @@ using UnityEngine;
 /// <summary>
 /// Remembers a "home" pose for the temple and restores it on demand.
 /// On start the temple is placed within arm's reach in front of the player (optional), and that
-/// becomes home. Home can be moved
-/// to wherever the temple currently is with <see cref="SetHomeToCurrent"/>.
+/// becomes home. Home can be moved to wherever the temple currently is with <see cref="SetHomeToCurrent"/>.
 /// Attach to the Temple root (the object carrying the Grabbable / Rigidbody).
 /// </summary>
 public class TempleResetter : MonoBehaviour
@@ -134,7 +133,7 @@ public class TempleResetter : MonoBehaviour
 
     /// <summary>
     /// Makes the temple's current position, rotation and scale the pose that
-    /// <see cref="ResetTemple"/> returns to. Wired to the "Set temple position" button.
+    /// <see cref="ResetTemple"/> returns to.
     /// </summary>
     public void SetHomeToCurrent()
     {
@@ -151,7 +150,6 @@ public class TempleResetter : MonoBehaviour
 
     /// <summary>
     /// Restores the temple to its home pose, rebuilding it first if it was demolished.
-    /// Wired to the "Reset temple" button.
     /// </summary>
     public void ResetTemple()
     {

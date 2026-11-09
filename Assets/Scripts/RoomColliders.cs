@@ -11,8 +11,8 @@ using UnityEngine.Android;
 ///
 /// Spawns itself after the scene loads; nothing needs to be placed in the scene. At launch it loads the
 /// stored scan, opening Space Setup only if there is none (<see cref="RescanOnLaunch"/> opens it every
-/// launch; Space Setup cannot run over Link, so in the editor the stored scan is loaded as is). If the scene already has an MRUK it is reused and
-/// loads the room by its own settings.
+/// launch; Space Setup cannot run over Link, so in the editor the stored scan is loaded as is). If the
+/// scene already has an MRUK it is reused and loads the room by its own settings.
 ///
 /// World locking stays on: the room is placed once at load, so without it any later shift of the
 /// headset's tracking origin (lost tracking, a recenter, a re-estimated floor height) leaves the colliders
@@ -26,7 +26,7 @@ using UnityEngine.Android;
 public class RoomColliders : MonoBehaviour
 {
     /// <summary>On: open Space Setup at every launch. Off: load the stored scan, asking for one only if there is none.</summary>
-    private static readonly bool RescanOnLaunch = false; // off while testing whether it causes the boundary circle
+    private const bool RescanOnLaunch = false;
 
     private const string DebugShaderPath = "Shaders/ColliderDebug";
 

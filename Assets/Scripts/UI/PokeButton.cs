@@ -9,8 +9,7 @@ using UnityEngine.UI;
 /// A world-space button that is pressed directly by Interaction SDK poke (finger) or ray (pinch).
 ///
 /// Unlike a uGUI Button behind a PointableCanvas, this fires on the *press* itself, so a poke
-/// that slides sideways or drags a few millimetres while pressed still counts. That uGUI
-/// "release over the same element without dragging" rule is what made poke clicks fail before.
+/// that slides sideways or drags a few millimetres while pressed still counts.
 /// </summary>
 public class PokeButton : MonoBehaviour
 {
@@ -312,8 +311,6 @@ public class PokeButton : MonoBehaviour
             _ray.WhenStateChanged -= OnStateChanged;
         }
     }
-
-    // ---------------------------------------------------------------- helpers
 
     internal static RectTransform NewRect(string name, Transform parent)
     {

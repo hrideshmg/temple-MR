@@ -125,8 +125,6 @@ public class StorySequence : MonoBehaviour
     private bool _passthroughDimmed;
     private Vector3 _lastPassthrough;
 
-    // =====================================================================  setup
-
     private void Awake()
     {
         _story = GetComponent<StoryAudioController>();
@@ -187,8 +185,6 @@ public class StorySequence : MonoBehaviour
             Destroy(_overlay.gameObject);
         }
     }
-
-    // =====================================================================  per frame
 
     private void Update()
     {
@@ -271,8 +267,6 @@ public class StorySequence : MonoBehaviour
             _sfx.PlayOneShot(clip, volume);
         }
     }
-
-    // =====================================================================  overlay
 
     private void UpdateOverlay(float t, bool active)
     {
@@ -377,8 +371,6 @@ public class StorySequence : MonoBehaviour
         // Same apparent size at any distance.
         _captionCard.Place(position, eyes, d / 0.8f);
     }
-
-    // =====================================================================  lighting
 
     private void UpdateLighting(float t)
     {
@@ -498,8 +490,6 @@ public class StorySequence : MonoBehaviour
         }
         return Mathf.SmoothStep(0f, 1f, (t - from) / (to - from));
     }
-
-    // =====================================================================  default content
 
     private static PartCue[] DefaultParts()
     {

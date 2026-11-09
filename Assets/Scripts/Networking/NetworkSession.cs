@@ -136,8 +136,6 @@ public class NetworkSession : MonoBehaviour
 #endif
     }
 
-    // =====================================================================  host
-
     public void Host()
     {
         if (Current != State.Offline)
@@ -198,8 +196,6 @@ public class NetworkSession : MonoBehaviour
             Debug.LogWarning($"NetworkSession: couldn't stop advertising ({e.Message}).", this);
         }
     }
-
-    // =====================================================================  join
 
     /// <summary>Looks for a nearby host and joins it; falls back to the join address.</summary>
     public async void Join()
@@ -322,8 +318,6 @@ public class NetworkSession : MonoBehaviour
         }
     }
 
-    // =====================================================================  leave
-
     /// <summary>Ends the session (or cancels a search or join). The scene stays as it is, single-player.</summary>
     public void Leave()
     {
@@ -339,8 +333,6 @@ public class NetworkSession : MonoBehaviour
         }
         SetState(State.Offline, "");
     }
-
-    // =====================================================================  network events
 
     private void OnClientConnected(ulong clientId)
     {

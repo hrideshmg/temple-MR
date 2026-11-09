@@ -76,8 +76,6 @@ public class NetworkedDemolition : NetworkBehaviour
         _temple = GetComponent<NetworkedTemple>();
     }
 
-    // =====================================================================  panel action
-
     /// <summary>Demolish / Rebuild for every player; acts locally without a session.</summary>
     public void RequestToggle()
     {
@@ -88,8 +86,6 @@ public class NetworkedDemolition : NetworkBehaviour
         }
         ToggleRpc();
     }
-
-    // =====================================================================  lifecycle
 
     public override void OnNetworkSpawn()
     {
@@ -135,8 +131,6 @@ public class NetworkedDemolition : NetworkBehaviour
             UpdateGuest();
         }
     }
-
-    // =====================================================================  host
 
     [Rpc(SendTo.Server)]
     private void ToggleRpc()
@@ -278,8 +272,6 @@ public class NetworkedDemolition : NetworkBehaviour
         // Let go near its slot: the puzzle may set it in place.
         Puzzle?.TrySnap(index);
     }
-
-    // =====================================================================  guest
 
     private void UpdateGuest()
     {

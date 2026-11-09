@@ -87,8 +87,8 @@ TestHands/
 │   │   ├── Shaders/OccludedLit.shader  URP Lit replacement with depth occlusion
 │   │   ├── Shaders/ColliderDebug.shader  translucent grid for the collider view
 │   │   └── (Meta SDK settings assets)
-│   ├── Audio/Resources/MuvarStory.mp3  narration (loaded by name)
-│   ├── ThirdTempleModel/               temple OBJ (Temple_3D_Final_02.obj) + textures
+│   ├── Audio/Resources/MuvarStory.mp3  narration (assigned on StoryAudio)
+│   ├── ThirdTempleModel/               temple model (Temple.fbx) + textures
 │   ├── Settings/                       URP assets, volume profile, Build Profiles
 │   ├── Plugins/Android/AndroidManifest.xml
 │   ├── XR/, Oculus/, InteractionSDK/   SDK configuration
@@ -109,7 +109,7 @@ Git-ignored: `Library/`, `Temp/`, `Logs/`, `UserSettings/`, `Build/`, `*.apk`, `
 | `[BuildingBlock] Camera Rig` | `OVRCameraRig`, `OVRManager`; `TrackingSpace` → `CenterEyeAnchor` (= `Camera.main`), hand and controller anchors |
 | `[BuildingBlock] Passthrough` | `OVRPassthroughLayer` (dimmed by the story) |
 | `ISDK_HandGrabInteraction` | Interaction SDK hand interactors (grab + poke; rays disabled) |
-| Temple (model instance of `Temple_3D_Final_02`) | `Grabbable`, `GrabFreeTransformer` (scale 0.2–5×), `HandGrabInteractable`, `GrabInteractable`, `Rigidbody`, `NetworkObject`, `NetworkTransform`, `TempleResetter`, `TempleDemolition`, `NetworkedTemple`, `NetworkedDemolition` |
+| Temple (model instance of `Temple.fbx`) | `Grabbable`, `GrabFreeTransformer` (scale 0.2–5×), `HandGrabInteractable`, `GrabInteractable`, `Rigidbody`, `NetworkObject`, `NetworkTransform`, `TempleResetter`, `TempleDemolition`, `NetworkedTemple`, `NetworkedDemolition` |
 | `StoryAudio` | `AudioSource`, `StoryAudioController`, `StorySequence`, `NetworkObject`, `NetworkedStory` |
 | `TempleControlPanel` | `TempleControlPanel` (builds its canvas at runtime) |
 | `NetworkManager` | `NetworkManager` (scene management on), `UnityTransport`, `NetworkSession`, `SharedSpace` |
@@ -226,7 +226,7 @@ Public API: `Demolish()`, `Rebuild()`, `Toggle()`, `IsDemolished`, `IsReassembli
 - `Editor/DepthOcclusionSetup.cs` turns on the OpenXR features Meta Quest: Session and Meta Quest: Occlusion for Android and Standalone, once per machine. Re-run from Tools → TestHands → Enable Depth Occlusion Features.
 
 ### 6.6 Story mode (`StoryAudioController`, `StorySequence`, `TempleAnatomy`, `StoryCard`, `StorySounds`)
-Playback (`StoryAudioController`): loads `Resources/MuvarStory` if no clip is assigned. `TogglePlayPause()` resumes from the pause point. `PlayFrom(t)` / `PauseAt(t)` exist for network sync. Exposes `PlaybackTime`, `Length`, `IsPlaying`.
+Playback (`StoryAudioController`): plays the assigned narration clip. `TogglePlayPause()` resumes from the pause point. `PlayFrom(t)` / `PauseAt(t)` exist for network sync. Exposes `PlaybackTime`, `Length`, `IsPlaying`.
 
 Sequence (`StorySequence`). Everything is computed from `PlaybackTime`:
 
@@ -323,7 +323,7 @@ Most behaviour is tunable in the Inspector (all fields have tooltips). The impor
 | | Settle Time / Info Time | 0.3 s / 7 s | snap animation / how long the part card stays |
 | `RoomColliders` (code const) | `RescanOnLaunch` | false | open Space Setup every launch |
 
-Model import (`ThirdTempleModel/Temple_3D_Final_02.obj`): **Read/Write must be enabled** for fracturing and anatomy.
+Model import (`ThirdTempleModel/Temple.fbx`): **Read/Write must be enabled** for fracturing and anatomy.
 
 ## 9. Build and deploy
 

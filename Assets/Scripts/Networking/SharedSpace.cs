@@ -101,8 +101,6 @@ public class SharedSpace : MonoBehaviour
         _network.CustomMessagingManager.RegisterNamedMessageHandler(MessageName, OnSpaceMessage);
     }
 
-    // =====================================================================  host
-
     private async void ShareRoom(Guid group)
     {
         SetState(State.Sharing, "");
@@ -187,8 +185,6 @@ public class SharedSpace : MonoBehaviour
         var room = MRUK.Instance.GetCurrentRoom() ?? MRUK.Instance.Rooms[0];
         return room.FloorAnchors.Count > 0 ? room : null;
     }
-
-    // =====================================================================  guest
 
     private void OnSpaceMessage(ulong senderId, FastBufferReader reader)
     {

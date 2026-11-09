@@ -196,8 +196,6 @@ public class TempleControlPanel : MonoBehaviour
         ApplyExpand();
     }
 
-    // =====================================================================  build
-
     private void Build()
     {
         var canvasGo = new GameObject("Canvas", typeof(RectTransform));
@@ -231,7 +229,6 @@ public class TempleControlPanel : MonoBehaviour
         _panelGroup = _panel.gameObject.AddComponent<CanvasGroup>();
         Backdrop(_panel);
 
-        // ---- Header
         Text("Title", "Temple MR", 19f, FontStyles.Bold, TextPrimary, Pad, 18f, 120f, 24f);
         Text("Subtitle", "Control panel", 11.5f, FontStyles.Normal, TextSecondary, Pad, 41f, 120f, 16f);
         _devButton = Button("Developer", PokeButton.Style.Ghost, UISpriteFactory.Icon.Code, null,
@@ -241,7 +238,6 @@ public class TempleControlPanel : MonoBehaviour
 
         Divider(68f);
 
-        // ---- Story
         _playButton = Button("PlayStory", PokeButton.Style.Primary, UISpriteFactory.Icon.Play, "Play story",
             Pad, 82f, Width - Pad * 2f, 52f, TogglePlayPause, 16f);
 
@@ -260,7 +256,6 @@ public class TempleControlPanel : MonoBehaviour
 
         Divider(178f);
 
-        // ---- Temple
         SectionLabel("TEMPLE", 190f);
         _resetButton = Button("ResetTemple", PokeButton.Style.Secondary, UISpriteFactory.Icon.Home, "Reset temple",
             Pad, 208f, Width - Pad * 2f, 48f, ResetTemple, 15f);
@@ -271,7 +266,6 @@ public class TempleControlPanel : MonoBehaviour
 
         Divider(380f);
 
-        // ---- Session
         SectionLabel("SESSION", 392f);
         _sessionText = Text("SessionStatus", "Offline", 10.5f, FontStyles.Normal, TextSecondary,
             Pad, 408f, Width - Pad * 2f, 14f);
@@ -292,7 +286,7 @@ public class TempleControlPanel : MonoBehaviour
             b.BuildInteraction();
         }
 
-        // ---- Grab bar floating just above the top edge: pick it up to move the panel.
+        // Grab bar just above the top edge: pick it up to move the panel.
         _grabBar = PanelGrabBar.Create(_panel, transform, GrabBarHitSize, GrabBarPillSize);
         Place(_grabBar.Rect, (Width - GrabBarHitSize.x) * 0.5f, -GrabBarHitSize.y - 4f, GrabBarHitSize.x, GrabBarHitSize.y);
         _grabBar.BuildInteraction();
@@ -400,8 +394,6 @@ public class TempleControlPanel : MonoBehaviour
         _handleButton.BuildInteraction();
     }
 
-    // =====================================================================  actions
-
     private void TogglePlayPause()
     {
         if (_networkedStory != null)
@@ -496,13 +488,13 @@ public class TempleControlPanel : MonoBehaviour
         }
     }
 
-    public void Collapse()
+    private void Collapse()
     {
         _collapsed = true;
         ApplyExpand();
     }
 
-    public void Expand()
+    private void Expand()
     {
         _collapsed = false;
         ApplyExpand();
@@ -515,8 +507,6 @@ public class TempleControlPanel : MonoBehaviour
             _audio.PlayOneShot(_clickSound);
         }
     }
-
-    // =====================================================================  update
 
     private void LateUpdate()
     {
@@ -805,8 +795,6 @@ public class TempleControlPanel : MonoBehaviour
             _ => "",
         };
     }
-
-    // =====================================================================  layout helpers
 
     /// <summary>Positions a rect inside its parent (the panel or popup) using top-left coordinates.</summary>
     private static void Place(RectTransform rt, float x, float y, float w, float h)

@@ -47,9 +47,6 @@ public class TemplePuzzle : MonoBehaviour
     [Tooltip("Seconds the card about a placed part stays up.")]
     private float _infoTime = 7f;
 
-    /// <summary>A piece was placed (index), on every headset.</summary>
-    public event Action<int> PiecePlaced;
-
     public int PlacedCount { get; private set; }
     public int TotalCount => _demolition != null && _demolition.IsReady ? _demolition.PieceCount : 0;
 
@@ -88,8 +85,6 @@ public class TemplePuzzle : MonoBehaviour
     private int _hintPiece = -1;
     private AudioSource _sfx;
     private bool _completeShown;
-
-    // =====================================================================  setup
 
     private void Awake()
     {
@@ -192,8 +187,6 @@ public class TemplePuzzle : MonoBehaviour
         }
     }
 
-    // =====================================================================  rules
-
     /// <summary>Offline, or the host of a session: this headset decides placements.</summary>
     private bool HasAuthority => _network == null || !_network.IsSpawned || _network.IsServer;
 
@@ -263,7 +256,7 @@ public class TemplePuzzle : MonoBehaviour
             ShowHint(index, missing);
             return false;
         }
-        Place(index, true);
+        Place(index);
         return true;
     }
 
@@ -279,12 +272,12 @@ public class TemplePuzzle : MonoBehaviour
             bool shouldBe = (mask & (1UL << i)) != 0;
             if (shouldBe && !IsPlaced(i))
             {
-                Place(i, true);
+                Place(i);
             }
         }
     }
 
-    private void Place(int index, bool animate)
+    private void Place(int index)
     {
         Transform t = _demolition.GetPieceBody(index).transform;
         Vector3 fromPosition = t.position;
@@ -297,14 +290,13 @@ public class TemplePuzzle : MonoBehaviour
         {
             _hintUntil = 0f;
         }
-        if (animate && _settleTime > 0f)
+        if (_settleTime > 0f)
         {
             StartCoroutine(SettleRoutine(t, fromPosition, fromRotation, index));
         }
 
         Play(StorySounds.Chime, 0.45f);
         ShowInfo(index);
-        PiecePlaced?.Invoke(index);
 
         if (HasAuthority && PlacedCount == TotalCount)
         {
@@ -351,8 +343,6 @@ public class TemplePuzzle : MonoBehaviour
             _demolition.Rebuild();
         }
     }
-
-    // =====================================================================  per frame
 
     private void Update()
     {
@@ -438,8 +428,6 @@ public class TemplePuzzle : MonoBehaviour
         Vector3 scale = _demolition.GetPieceBody(index).transform.lossyScale;
         _slots[index].Draw(Matrix4x4.TRS(home.position, home.rotation, scale), color, alpha, 0.0025f, 0.01f);
     }
-
-    // =====================================================================  cards and sound
 
     private void ShowInfo(int index)
     {

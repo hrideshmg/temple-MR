@@ -130,8 +130,6 @@ public static class UISpriteFactory
         };
     }
 
-    // ---------------------------------------------------------------- icon shapes
-
     private const float Stroke = 0.045f;
 
     private static Func<Vector2, float> IconShape(Icon icon)

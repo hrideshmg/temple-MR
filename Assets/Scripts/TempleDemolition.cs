@@ -23,8 +23,10 @@ using Random = UnityEngine.Random;
 /// <see cref="Demolish"/> trembles the temple, swaps it for the pieces and releases them bottom-first:
 /// lower pieces kick outward, upper ones sag inward. With <see cref="_explosive"/> on, pieces that
 /// overlap at rest shove each other apart and the rubble bursts across the room; off, it folds into a
-/// heap where it stood. Every piece can be picked up by hand and thrown. <see cref="Rebuild"/> flies the rubble back into place, base first, and swaps in the intact temple. Requires Read/Write on the model import.
-/// Attach to the Temple root.
+/// heap where it stood. Every piece can be picked up by hand and thrown. <see cref="Rebuild"/> flies
+/// the rubble back into place, base first, and swaps in the intact temple.
+///
+/// Requires Read/Write on the model import. Attach to the Temple root.
 /// </summary>
 public class TempleDemolition : MonoBehaviour
 {
@@ -163,9 +165,6 @@ public class TempleDemolition : MonoBehaviour
         return new Pose(_debrisRoot.TransformPoint(p.LocalPosition), _debrisRoot.rotation * p.LocalRotation);
     }
 
-    /// <summary>World scale of the pieces (they share the temple's scale).</summary>
-    public Vector3 PieceScale => _debrisRoot.lossyScale;
-
     /// <summary>The temple's height in metres.</summary>
     public float WorldHeight => _localBounds.size.y * transform.lossyScale.y;
 
@@ -284,8 +283,6 @@ public class TempleDemolition : MonoBehaviour
         StartCoroutine(BuildRoutine());
     }
 
-    // =====================================================================  public API
-
     public void Demolish()
     {
         if (!IsReady || IsDemolished)
@@ -392,8 +389,6 @@ public class TempleDemolition : MonoBehaviour
             Demolish();
         }
     }
-
-    // =====================================================================  collapse
 
     private IEnumerator CollapseRoutine()
     {
@@ -578,8 +573,6 @@ public class TempleDemolition : MonoBehaviour
             b.enabled = visible;
         }
     }
-
-    // =====================================================================  fracture build
 
     private class SourceMesh
     {
@@ -1182,8 +1175,6 @@ public class TempleDemolition : MonoBehaviour
             Destroy(m);
         }
     }
-
-    // =====================================================================  helpers
 
     private static float NearestDistanceSq(List<Vector3> points, Vector3 p, out int index)
     {

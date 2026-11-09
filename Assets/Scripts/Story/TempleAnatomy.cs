@@ -97,8 +97,6 @@ public class TempleAnatomy : MonoBehaviour
     private float _sweepAlpha;
     private float _masterAlpha = 1f;
 
-    // =====================================================================  setup
-
     public void Init(Transform temple, Part[] parts)
     {
         _temple = temple;
@@ -364,10 +362,6 @@ public class TempleAnatomy : MonoBehaviour
         };
     }
 
-    // =====================================================================  driven by the sequence
-
-    public int PartCount => _parts?.Length ?? 0;
-
     /// <summary>Sets how visible part <paramref name="index"/> is.</summary>
     /// <param name="frame">GlowOutline brightness, 0-1.</param>
     /// <param name="label">Label card opacity, 0-1.</param>
@@ -405,8 +399,6 @@ public class TempleAnatomy : MonoBehaviour
 
     /// <summary>The temple's height in metres.</summary>
     public float WorldHeight => _bounds.size.y * _temple.lossyScale.y;
-
-    // =====================================================================  per frame
 
     private void LateUpdate()
     {

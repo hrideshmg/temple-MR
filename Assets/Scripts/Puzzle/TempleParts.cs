@@ -178,8 +178,6 @@ public static class TempleParts
 
     public static Info Get(Id id) => _all[(int)id];
 
-    // =====================================================================  classification
-
     /// <summary>One source mesh, already in temple space.</summary>
     public class Source
     {

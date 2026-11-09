@@ -136,8 +136,6 @@ public class NetworkedTemple : NetworkBehaviour
         }
     }
 
-    // =====================================================================  panel actions
-
     /// <summary>"Set temple position": the temple's current pose becomes home, for every player.</summary>
     public void RequestSetHome()
     {
@@ -159,8 +157,6 @@ public class NetworkedTemple : NetworkBehaviour
         }
         ResetRpc();
     }
-
-    // =====================================================================  host
 
     [Rpc(SendTo.Server)]
     private void SetHomeRpc()
@@ -230,8 +226,6 @@ public class NetworkedTemple : NetworkBehaviour
             _holder.Value = Nobody;
         }
     }
-
-    // =====================================================================  everyone
 
     [Rpc(SendTo.SpecifiedInParams)]
     private void DenyRpc(RpcParams rpcParams)
