@@ -1,6 +1,6 @@
 # KoviLens project documentation
 
-Reference documentation for the KoviLens (a.k.a. Templ-MR / TestHands) mixed-reality temple app for Meta Quest 3 / 3S. For project status and setup, read [HANDOVER.md](HANDOVER.md) first.
+Reference documentation for the KoviLens (a.k.a. Templ-MR / TestHands) mixed-reality temple app for Meta Quest 3 / 3S. For setup, read [HANDOVER.md](HANDOVER.md) first.
 
 *Describes `main` as of 2026-11-09 (commit `1eebf08`). Line numbers are approximate; search for the method name.*
 
@@ -95,7 +95,6 @@ TestHands/
 │   └── DefaultNetworkPrefabs.asset
 ├── Packages/manifest.json
 ├── ProjectSettings/
-├── paper/                              IEEE paper draft (LaTeX) + FACTS / EVAL_PLAN
 └── docs/                               this documentation
 ```
 
@@ -334,7 +333,7 @@ Model import (`ThirdTempleModel/Temple_3D_Final_02.obj`): **Read/Write must be e
 - `AndroidManifest.xml`: launcher + VR category, focus aware, `BOUNDARYLESS_APP` required (no guardian in passthrough), supported devices quest/quest2/questpro/quest3/quest3s.
 - Install: Build And Run from the profile window, or `adb install -r <apk>`.
 - **Every headset in a session must run the same build**; otherwise the join is refused.
-- For paper measurements use the release profile with the `[MP]` diagnostics removed (see `paper/EVAL_PLAN.md`).
+- For performance measurements use the release profile with the `[MP]` diagnostics removed.
 
 ## 10. Debugging and diagnostics
 
@@ -353,7 +352,7 @@ Common problems:
 - Rubble falls through the floor → no room scan; run Space Setup.
 - Colliders offset from the room → tracking origin shifted; world lock should correct it, else Rescan.
 - Guest sees no temple → check scene management is on and the `[MP] Joined … Spawned here:` line lists `Temple` and `StoryAudio`; if they're spawned, it's the alignment bug.
-- Editor crashes over Link → Meta Link runtime, not project code (see HANDOVER §4.4).
+- Editor crashes over Link → Meta Link runtime, not project code (see HANDOVER §3.4).
 
 ## 11. Extending the project
 
