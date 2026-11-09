@@ -145,6 +145,9 @@ public class SharedSpace : MonoBehaviour
         _roomUuid = room.Anchor.Uuid;
         _floorPose = new Pose(floor.position, floor.rotation);
         _spaceReady = true;
+        Debug.Log($"[MP] Host sharing room {_roomUuid} (current room: {MRUK.Instance.GetCurrentRoom()?.Anchor.Uuid.ToString() ?? "none"}, " +
+                  $"{MRUK.Instance.Rooms.Count} rooms: {DescribeRooms()}) floor={_floorPose.position:F3} " +
+                  $"rot={_floorPose.rotation.eulerAngles:F1} {DescribeRig()}");
         SetState(State.Shared, "");
 
         foreach (ulong clientId in _network.ConnectedClientsIds)
@@ -208,9 +211,12 @@ public class SharedSpace : MonoBehaviour
             return;
         }
         SetState(State.Aligning, "");
+        Debug.Log($"[MP] Guest aligning to room {room}: host floor={floorOnHost.position:F3} " +
+                  $"rot={floorOnHost.rotation.eulerAngles:F1}; before: {DescribeRig()} rooms: {DescribeRooms()}");
         try
         {
             var result = await MRUK.Instance.LoadSceneFromSharedRooms(group, (room, floorOnHost));
+            Debug.Log($"[MP] Guest alignment {result}; after: {DescribeRig()} rooms: {DescribeRooms()}");
             if (_session.Current != NetworkSession.State.Joined)
             {
                 return;
@@ -228,6 +234,36 @@ public class SharedSpace : MonoBehaviour
         {
             SetState(State.Failed, $"Couldn't load the host's room ({e.Message})");
         }
+    }
+
+    // Diagnostics: where the camera rig and each loaded room's floor are in world space.
+    private static string DescribeRig()
+    {
+        var rig = FindAnyObjectByType<OVRCameraRig>();
+        Transform space = rig != null ? rig.trackingSpace : null;
+        Camera cam = Camera.main;
+        return $"trackingSpace={(space != null ? $"{space.position:F3}/{space.rotation.eulerAngles:F1}" : "none")} " +
+               $"cam={(cam != null ? cam.transform.position.ToString("F3") : "none")} " +
+               $"worldLock={MRUK.Instance != null && MRUK.Instance.IsWorldLockActive}";
+    }
+
+    private static string DescribeRooms()
+    {
+        if (MRUK.Instance == null)
+        {
+            return "-";
+        }
+        var text = new System.Text.StringBuilder();
+        foreach (var r in MRUK.Instance.Rooms)
+        {
+            text.Append($"[{r.Anchor.Uuid.ToString().Substring(0, 8)} floors={r.FloorAnchors.Count}");
+            if (r.FloorAnchors.Count > 0)
+            {
+                text.Append($" floor0={r.FloorAnchors[0].transform.position:F3}");
+            }
+            text.Append("] ");
+        }
+        return text.ToString();
     }
 
     private void SetState(State state, string error)

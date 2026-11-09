@@ -77,6 +77,8 @@ public class NetworkSession : MonoBehaviour
     private bool _advertising;
     private bool _discovering;
     private float _searchDeadline;
+    private float _joinStarted;
+    private ushort _joinPort;
 
     private void Awake()
     {
@@ -282,6 +284,8 @@ public class NetworkSession : MonoBehaviour
     private void Connect(string address, ushort port)
     {
         Address = address;
+        _joinPort = port;
+        _joinStarted = Time.unscaledTime;
         _transport.SetConnectionData(address, port);
         _transport.ConnectTimeoutMS = 1000;
         _transport.MaxConnectAttempts = Mathf.Max(1, _joinTimeout);
@@ -343,9 +347,16 @@ public class NetworkSession : MonoBehaviour
         if (Current == State.Joining && clientId == _network.LocalClientId)
         {
             SetState(State.Joined, "");
+            var spawned = new System.Text.StringBuilder();
+            foreach (var obj in _network.SpawnManager.SpawnedObjectsList)
+            {
+                spawned.Append($"{obj.name}#{obj.NetworkObjectId} ");
+            }
+            Debug.Log($"[MP] Joined {Address} as client {_network.LocalClientId}. Spawned here: {spawned}");
         }
         else if (Current == State.Hosting)
         {
+            Debug.Log($"[MP] Client {clientId} connected; {_network.ConnectedClientsIds.Count} players.");
             StateChanged?.Invoke(); // player count changed
         }
     }
@@ -362,10 +373,27 @@ public class NetworkSession : MonoBehaviour
         }
         if (Current == State.Joining || Current == State.Joined)
         {
-            // Our own connection ended: the host left, or a join timed out.
-            string reason = Current == State.Joining
-                ? $"Couldn't reach {Address}"
-                : string.IsNullOrEmpty(_network.DisconnectReason) ? "Host ended the session" : _network.DisconnectReason;
+            // Our own connection ended: the host left, refused us, or never answered.
+            string reason;
+            if (Current == State.Joined)
+            {
+                reason = "Host ended the session.";
+            }
+            else if (Time.unscaledTime - _joinStarted < _joinTimeout - 1f)
+            {
+                // Dropped before the timeout: the host answered but refused, e.g. a different build.
+                reason = $"{Address} refused the join. Are both headsets running the same build?";
+            }
+            else
+            {
+                reason = $"No answer from {Address}:{_joinPort}. The host isn't reachable on this network " +
+                         "(different Wi-Fi, a firewall on the host, or a hotspot that keeps devices apart).";
+            }
+            // Netcode's own reason, for the details.
+            if (!string.IsNullOrEmpty(_network.DisconnectReason))
+            {
+                reason += "\n\n" + _network.DisconnectReason;
+            }
             _network.Shutdown();
             SetState(State.Offline, reason);
         }

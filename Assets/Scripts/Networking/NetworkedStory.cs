@@ -38,6 +38,7 @@ public class NetworkedStory : NetworkBehaviour
             _story.TogglePlayPause();
             return;
         }
+        Debug.Log("[MP] NetworkedStory: asking the host to play / pause.");
         ToggleRpc();
     }
 
@@ -51,13 +52,26 @@ public class NetworkedStory : NetworkBehaviour
             _startTime.Value = ServerTime - position;
             _playing.Value = _story.IsPlaying;
         }
+        _playing.OnValueChanged += LogPlaying;
+        Debug.Log($"[MP] NetworkedStory spawned: id={NetworkObjectId} server={IsServer} playing={_playing.Value}");
+    }
+
+    public override void OnNetworkDespawn()
+    {
+        _playing.OnValueChanged -= LogPlaying;
+    }
+
+    private void LogPlaying(bool previous, bool current)
+    {
+        Debug.Log($"[MP] NetworkedStory: playing {previous} -> {current} at server time {ServerTime:F2}");
     }
 
     private double ServerTime => NetworkManager.ServerTime.Time;
 
     [Rpc(SendTo.Server)]
-    private void ToggleRpc()
+    private void ToggleRpc(RpcParams rpcParams = default)
     {
+        Debug.Log($"[MP] NetworkedStory: play / pause from client {rpcParams.Receive.SenderClientId}");
         if (_playing.Value)
         {
             _pausedAt.Value = (float)(ServerTime - _startTime.Value);

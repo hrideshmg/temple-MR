@@ -140,6 +140,8 @@ public class TempleControlPanel : MonoBehaviour
     private PokeButton _hostButton;
     private PokeButton _joinButton;
     private TMP_Text _sessionText;
+    private RectTransform _errorBox;
+    private TMP_Text _errorText;
     private PanelGrabBar _grabBar;
     private RectTransform _progressFill;
     private TMP_Text _timeText;
@@ -279,6 +281,7 @@ public class TempleControlPanel : MonoBehaviour
             Pad, 428f, half, 40f, HostOrLeave, 15f);
         _joinButton = Button("JoinSession", PokeButton.Style.Secondary, null, "Join",
             Pad + half + 8f, 428f, half, 40f, () => NetworkSession.Instance?.Join(), 15f);
+        BuildErrorBox();
 
         _panelButtons = new[]
         {
@@ -293,6 +296,45 @@ public class TempleControlPanel : MonoBehaviour
         _grabBar = PanelGrabBar.Create(_panel, transform, GrabBarHitSize, GrabBarPillSize);
         Place(_grabBar.Rect, (Width - GrabBarHitSize.x) * 0.5f, -GrabBarHitSize.y - 4f, GrabBarHitSize.x, GrabBarHitSize.y);
         _grabBar.BuildInteraction();
+    }
+
+    /// <summary>
+    /// A box hanging under the panel that shows a multiplayer error in full, growing to fit however
+    /// long it is (network errors can run to several lines).
+    /// </summary>
+    private void BuildErrorBox()
+    {
+        _errorBox = PokeButton.NewRect("SessionError", _panel);
+        _errorBox.anchorMin = new Vector2(0f, 0f);
+        _errorBox.anchorMax = new Vector2(1f, 0f);
+        _errorBox.pivot = new Vector2(0.5f, 1f);
+        _errorBox.anchoredPosition = new Vector2(0f, -10f);
+        _errorBox.sizeDelta = Vector2.zero;
+
+        var bg = _errorBox.gameObject.AddComponent<Image>();
+        bg.sprite = UISpriteFactory.Rounded;
+        bg.type = Image.Type.Sliced;
+        bg.color = PanelColor;
+        bg.pixelsPerUnitMultiplier = UISpriteFactory.RoundedCornerPixels / ButtonRadius;
+        bg.raycastTarget = false;
+
+        var layout = _errorBox.gameObject.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset((int)Pad, (int)Pad, 12, 12);
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandHeight = false;
+        _errorBox.gameObject.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        var textRect = PokeButton.NewRect("Text", _errorBox);
+        _errorText = textRect.gameObject.AddComponent<TextMeshProUGUI>();
+        _errorText.fontSize = 11f;
+        _errorText.color = TextPrimary;
+        _errorText.alignment = TextAlignmentOptions.TopLeft;
+        _errorText.textWrappingMode = TextWrappingModes.Normal;
+        _errorText.overflowMode = TextOverflowModes.Overflow;
+        _errorText.raycastTarget = false;
+
+        _errorBox.gameObject.SetActive(false);
     }
 
     /// <summary>Developer tools in a popup beside the panel, on the side nearer the body.</summary>
@@ -699,6 +741,7 @@ public class TempleControlPanel : MonoBehaviour
             _sessionText.text = "Multiplayer unavailable";
             _hostButton.SetEnabled(false);
             _joinButton.SetEnabled(false);
+            _errorBox.gameObject.SetActive(false);
             return;
         }
 
@@ -715,8 +758,24 @@ public class TempleControlPanel : MonoBehaviour
             NetworkSession.State.Searching => "Looking for a nearby host...",
             NetworkSession.State.Joining => $"Joining {session.Address}...",
             NetworkSession.State.Joined => $"Joined{SpaceStatus()}",
-            _ => string.IsNullOrEmpty(session.LastError) ? "Offline" : session.LastError,
+            _ => string.IsNullOrEmpty(session.LastError) ? "Offline" : "Offline · see message below",
         };
+
+        // Errors in full, under the panel.
+        string error = state == NetworkSession.State.Offline ? session.LastError : "";
+        if (string.IsNullOrEmpty(error) && SharedSpace.Instance != null && SharedSpace.Instance.Current == SharedSpace.State.Failed)
+        {
+            error = SharedSpace.Instance.Error;
+        }
+        bool showError = !string.IsNullOrEmpty(error);
+        if (_errorBox.gameObject.activeSelf != showError)
+        {
+            _errorBox.gameObject.SetActive(showError);
+        }
+        if (showError && _errorText.text != error)
+        {
+            _errorText.text = error;
+        }
     }
 
     private static string PlayerText(int count)
@@ -737,7 +796,7 @@ public class TempleControlPanel : MonoBehaviour
             SharedSpace.State.Shared => " · room shared",
             SharedSpace.State.Aligning => " · aligning...",
             SharedSpace.State.Aligned => " · aligned",
-            SharedSpace.State.Failed => " · " + space.Error,
+            SharedSpace.State.Failed => " · room not shared, see below",
             _ => "",
         };
     }

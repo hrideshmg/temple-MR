@@ -76,6 +76,22 @@ public class NetworkedTemple : NetworkBehaviour
             ApplyHome();
         }
         ApplyLock();
+        Debug.Log($"[MP] NetworkedTemple spawned: id={NetworkObjectId} server={IsServer} owner={OwnerClientId} " +
+                  $"pos={transform.position} scale={transform.localScale}");
+    }
+
+    private void LateUpdate()
+    {
+        // Diagnostics: where the temple is and whether it's drawn, every few seconds while in a session.
+        if (!IsSpawned || Time.frameCount % 360 != 0)
+        {
+            return;
+        }
+        var cam = Camera.main;
+        Renderer r = GetComponentInChildren<Renderer>();
+        Debug.Log($"[MP] Temple at {transform.position} scale={transform.localScale} owner={OwnerClientId} " +
+                  $"rendererOn={(r != null && r.enabled)} active={gameObject.activeInHierarchy} " +
+                  $"cam={(cam != null ? cam.transform.position.ToString() : "none")}");
     }
 
     public override void OnNetworkDespawn()
