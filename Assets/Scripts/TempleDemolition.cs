@@ -20,7 +20,7 @@ using Random = UnityEngine.Random;
 /// <see cref="Demolish"/> trembles the temple, swaps it for the pieces and releases them bottom-first:
 /// lower pieces kick outward, upper ones sag inward. With <see cref="_explosive"/> on, pieces that
 /// overlap at rest shove each other apart and the rubble bursts across the room; off, it folds into a
-/// heap where it stood. Every piece can be picked up by hand and thrown. <see cref="Rebuild"/> puts the intact temple back. Requires Read/Write on the model import.
+/// heap where it stood. Every piece can be picked up by hand and thrown. <see cref="Rebuild"/> flies the rubble back into place, base first, and swaps in the intact temple. Requires Read/Write on the model import.
 /// Attach to the Temple root.
 /// </summary>
 public class TempleDemolition : MonoBehaviour
@@ -95,7 +95,22 @@ public class TempleDemolition : MonoBehaviour
              "catching anything that slips through gaps in the scanned floor.")]
     private float _roomGroundSize = 30f;
 
+    [Header("Rebuild")]
+    [SerializeField]
+    [Tooltip("Seconds the rubble takes to fly back into place on Rebuild. 0 snaps the temple back at once.")]
+    private float _reassembleTime = 2.4f;
+
+    [SerializeField]
+    [Tooltip("How high each piece arcs on its way back, as a fraction of the temple's height.")]
+    private float _reassembleLift = 0.12f;
+
     public bool IsDemolished { get; private set; }
+
+    /// <summary>
+    /// True while the rubble flies back into place after <see cref="Rebuild"/>. The temple already
+    /// counts as standing (<see cref="IsDemolished"/> is false); only the pieces are still moving.
+    /// </summary>
+    public bool IsReassembling { get; private set; }
 
     /// <summary>True once the fracture has been precomputed and <see cref="Demolish"/> can run.</summary>
     public bool IsReady { get; private set; }
@@ -169,6 +184,12 @@ public class TempleDemolition : MonoBehaviour
         {
             return;
         }
+        if (IsReassembling)
+        {
+            // Knocked down again mid-rebuild: finish the rebuild instantly, then collapse from there.
+            StopRoutine();
+            FinishRebuild();
+        }
         // Remember where the temple stood; the root's own Rigidbody must not fall with the rubble.
         _preDemolishPosition = transform.position;
         _preDemolishRotation = transform.rotation;
@@ -194,11 +215,7 @@ public class TempleDemolition : MonoBehaviour
         {
             return;
         }
-        if (_routine != null)
-        {
-            StopCoroutine(_routine);
-            _routine = null;
-        }
+        StopRoutine();
         if (_trembling)
         {
             transform.localPosition = _trembleOrigin;
@@ -210,7 +227,6 @@ public class TempleDemolition : MonoBehaviour
         {
             p.Body.isKinematic = true;
         }
-        _debrisRoot.gameObject.SetActive(false);
 
         // Put the temple back where it stood before it fell.
         transform.SetPositionAndRotation(_preDemolishPosition, _preDemolishRotation);
@@ -218,12 +234,41 @@ public class TempleDemolition : MonoBehaviour
         {
             _rootBody.position = _preDemolishPosition;
             _rootBody.rotation = _preDemolishRotation;
+        }
+
+        IsDemolished = false;
+        if (_reassembleTime > 0f && _debrisRoot.gameObject.activeSelf)
+        {
+            // The intact temple stays hidden until the last piece lands.
+            IsReassembling = true;
+            _routine = StartCoroutine(ReassembleRoutine());
+        }
+        else
+        {
+            FinishRebuild();
+        }
+        DemolishedChanged?.Invoke(false);
+    }
+
+    /// <summary>Swaps the rubble for the intact temple.</summary>
+    private void FinishRebuild()
+    {
+        IsReassembling = false;
+        _debrisRoot.gameObject.SetActive(false);
+        if (_rootBody != null)
+        {
             _rootBody.isKinematic = _rootWasKinematic;
         }
         SetIntactVisible(true);
+    }
 
-        IsDemolished = false;
-        DemolishedChanged?.Invoke(false);
+    private void StopRoutine()
+    {
+        if (_routine != null)
+        {
+            StopCoroutine(_routine);
+            _routine = null;
+        }
     }
 
     public void Toggle()
@@ -316,6 +361,58 @@ public class TempleDemolition : MonoBehaviour
             yield return null;
         }
         _routine = null;
+    }
+
+    /// <summary>
+    /// Flies every piece from wherever it lies back to its place in the temple, base first, each on a
+    /// low arc, then swaps in the intact temple. Runs in the temple's own frame, so it keeps up if the
+    /// temple is moved meanwhile.
+    /// </summary>
+    private IEnumerator ReassembleRoutine()
+    {
+        int count = _pieces.Count;
+        var startPosition = new Vector3[count];
+        var startRotation = new Quaternion[count];
+        for (int i = 0; i < count; i++)
+        {
+            Transform t = _pieces[i].Body.transform;
+            startPosition[i] = t.position;
+            startRotation[i] = t.rotation;
+        }
+
+        // Move the rubble's frame onto the temple without moving the pieces, then work in that frame.
+        _debrisRoot.SetPositionAndRotation(transform.position, transform.rotation);
+        _debrisRoot.localScale = transform.lossyScale;
+        for (int i = 0; i < count; i++)
+        {
+            startPosition[i] = _debrisRoot.InverseTransformPoint(startPosition[i]);
+            startRotation[i] = Quaternion.Inverse(_debrisRoot.rotation) * startRotation[i];
+        }
+
+        float spread = _reassembleTime * 0.45f;    // base pieces leave first, the top ones last
+        float flight = _reassembleTime - spread;
+        float lift = _localBounds.size.y * _reassembleLift;
+        float start = Time.time;
+        float elapsed = 0f;
+        while (elapsed < _reassembleTime)
+        {
+            elapsed = Time.time - start;
+            _debrisRoot.SetPositionAndRotation(transform.position, transform.rotation);
+            _debrisRoot.localScale = transform.lossyScale;
+            for (int i = 0; i < count; i++)
+            {
+                Piece p = _pieces[i];
+                float u = Mathf.Clamp01((elapsed - p.Height * spread) / flight);
+                float e = u < 0.5f ? 4f * u * u * u : 1f - Mathf.Pow(-2f * u + 2f, 3f) * 0.5f; // ease in-out
+                Vector3 position = Vector3.LerpUnclamped(startPosition[i], p.LocalPosition, e)
+                                   + Vector3.up * (Mathf.Sin(e * Mathf.PI) * lift);
+                p.Body.transform.SetLocalPositionAndRotation(position,
+                    Quaternion.Slerp(startRotation[i], p.LocalRotation, e));
+            }
+            yield return null;
+        }
+        _routine = null;
+        FinishRebuild();
     }
 
     private void FixedUpdate()

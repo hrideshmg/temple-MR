@@ -1336,6 +1336,8 @@ MonoBehaviour:
   _gravityScale: 0.75
   _groundSize: 6
   _roomGroundSize: 30
+  _reassembleTime: 2.4
+  _reassembleLift: 0.12
 --- !u!114 &1257254196
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2300,7 +2302,7 @@ MonoBehaviour:
     EnableTimeResync: 0
     TimeResyncInterval: 30
     EnsureNetworkVariableLengthSafety: 0
-    EnableSceneManagement: 0
+    EnableSceneManagement: 1
     ForceSamePrefabs: 1
     RecycleNetworkIds: 1
     NetworkIdRecycleDelay: 120
@@ -2510,6 +2512,7 @@ GameObject:
   - component: {fileID: 1953842070}
   - component: {fileID: 1953842073}
   - component: {fileID: 1953842074}
+  - component: {fileID: 1953842075}
   m_Layer: 0
   m_Name: StoryAudio
   m_TagString: Untagged
@@ -2687,6 +2690,143 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NetworkedStory
   ShowTopMostFoldoutHeaderGroup: 1
   _maxDrift: 0.25
+--- !u!114 &1953842075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1953842069}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2869a991d6fad204e91ef8f09e9b92b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StorySequence
+  _demolition: {fileID: 0}
+  _passthrough: {fileID: 0}
+  _roomDim: 0.75
+  _warmLight: {r: 1, g: 0.78, b: 0.52, a: 1}
+  _darkenEnd: 2
+  _sunriseStart: 3.5
+  _sunriseEnd: 8
+  _titleStart: 2.5
+  _titleEnd: 9.5
+  _collapseTime: 25.8
+  _rebuildTime: 36.3
+  _labelsOffTime: 68.5
+  _restoreTime: 74.2
+  _restoreDuration: 4
+  _brightenStart: 85
+  _brightenEnd: 88.6
+  _title: MOOVAR KOVIL
+  _titleSubtitle: "Kodumbalur, Tamil Nadu  \xB7  Early Chola, 9th century CE"
+  _parts:
+  - Time: 42.6
+    ScanTime: 1.2
+    Hold: 5
+    Part:
+      Title: Adhisthana
+      Subtitle: The base
+      Body: The moulded stone plinth the shrine stands on, here in the padma-pushkala
+        style, with bands of lotus-petal mouldings.
+      Kind: 0
+      From: 0
+      To: 0.14
+      Side: 1
+  - Time: 44.7
+    ScanTime: 1.2
+    Hold: 5
+    Part:
+      Title: Bhitti
+      Subtitle: The wall
+      Body: The sanctum wall, stepped out in projections that break up the light
+        and frame the niches.
+      Kind: 0
+      From: 0.14
+      To: 0.34
+      Side: -1
+  - Time: 49.9
+    ScanTime: 0
+    Hold: 6
+    Part:
+      Title: Devakoshtha
+      Subtitle: Wall niches
+      Body: Niches set into the outer walls to hold carved images of deities, one
+        on each side except the entrance.
+      Kind: 1
+      From: 0.17
+      To: 0.31
+      Side: 1
+  - Time: 52.6
+    ScanTime: 3
+    Hold: 6
+    Part:
+      Title: Vimana
+      Subtitle: The tower
+      Body: The tower over the sanctum. Here it rises in two storeys (talas) of carved
+        pavilions to the domed shikhara and its kalasha finial.
+      Kind: 0
+      From: 0.4
+      To: 1
+      Side: -1
+  _showCaptions: 1
+  _captions:
+  - Start: 1.9
+    End: 5.2
+    Text: Welcome to the enchanting Mixed Reality immersive experience
+  - Start: 5.2
+    End: 8.8
+    Text: of Muvar Koil temple in Tamil Nadu.
+  - Start: 8.9
+    End: 12.5
+    Text: This sacred site boasts three Siva temples
+  - Start: 12.5
+    End: 14.8
+    Text: dating back to the ninth century,
+  - Start: 14.8
+    End: 19.8
+    Text: standing as a timeless testament to early Chola architecture.
+  - Start: 20
+    End: 25.6
+    Text: However, the passage of time has not been kind to this architectural marvel.
+  - Start: 25.6
+    End: 29.7
+    Text: As a result of neglect, invasion, disasters,
+  - Start: 29.7
+    End: 32.5
+    Text: and the relentless impact of climate change,
+  - Start: 32.5
+    End: 36.6
+    Text: only two of the three temples have managed to survive.
+  - Start: 37.7
+    End: 44.3
+    Text: The temple's foundation showcases a captivating padma-pushkala-style adhisthana,
+  - Start: 44.3
+    End: 51.5
+    Text: while the bhitti, or wall, is adorned with exquisite projections and devakoshthas
+      niches.
+  - Start: 51.8
+    End: 56.4
+    Text: As your gaze ascends, the two-story vimana unfolds
+  - Start: 56.4
+    End: 62
+    Text: with intricate carvings, each niche revealing the mastery of Chola art.
+  - Start: 62
+    End: 69
+    Text: These sculptures are celebrated as some of the finest specimens from that
+      era.
+  - Start: 69
+    End: 73.3
+    Text: Embark on a captivating augmented reality expedition
+  - Start: 73.3
+    End: 78.6
+    Text: as we revive and restore Muvar Koil, preserving its ancient charm.
+  - Start: 78.6
+    End: 83.1
+    Text: Immerse yourself in the rich history and interact with the temple,
+  - Start: 83.1
+    End: 88.4
+    Text: unlocking a unique journey through time.
 --- !u!1 &2012690429
 GameObject:
   m_ObjectHideFlags: 0
