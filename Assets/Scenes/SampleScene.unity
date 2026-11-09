@@ -1320,6 +1320,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6eeb3ec4d470b57468f166a87c4af7b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TempleDemolition
+  _fractureStyle: 0
+  _partCuts:
+    Plinth: 0.06
+    Base: 0.12
+    Wall: 0.335
+    Cornice: 0.445
+    Hara: 0.62
+    Tala: 0.8
+    Griva: 0.86
+    Shikhara: 0.945
   _chunkCount: 40
   _fractureSeed: 7
   _splitTriangleCount: 2500
@@ -1336,6 +1346,9 @@ MonoBehaviour:
   _gravityScale: 0.75
   _groundSize: 6
   _roomGroundSize: 30
+  _collapseClip: {fileID: 0}
+  _collapseClipName: cannon_fire
+  _collapseVolume: 0.9
   _reassembleTime: 2.4
   _reassembleLift: 0.12
 --- !u!114 &1257254196
@@ -2533,10 +2546,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StoryAudioController
   _storyClip: {fileID: 8300000, guid: 701c1cafd16fff5409f5c6895b3fc5ef, type: 3}
-  _resourceClipName: MuvarStory
-  _buttonLabel: {fileID: 0}
-  _playText: Play Story
-  _pauseText: Pause Story
 --- !u!82 &1953842071
 AudioSource:
   m_ObjectHideFlags: 0
@@ -2711,7 +2720,7 @@ MonoBehaviour:
   _sunriseEnd: 8
   _titleStart: 2.5
   _titleEnd: 9.5
-  _collapseTime: 25.8
+  _collapseTime: 25
   _rebuildTime: 36.3
   _labelsOffTime: 68.5
   _restoreTime: 74.2

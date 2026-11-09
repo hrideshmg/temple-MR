@@ -43,6 +43,7 @@ public class NetworkedDemolition : NetworkBehaviour
     private float _smoothing = 18f;
 
     private readonly NetworkVariable<bool> _demolished = new NetworkVariable<bool>();
+    private readonly NetworkVariable<byte> _style = new NetworkVariable<byte>(); // TempleDemolition.FractureStyle of the collapse
     private readonly NetworkVariable<ulong> _placed = new NetworkVariable<ulong>(); // puzzle: bit i = piece i in place
 
     private TemplePuzzle _puzzle;
@@ -87,10 +88,33 @@ public class NetworkedDemolition : NetworkBehaviour
         ToggleRpc();
     }
 
+    /// <summary>Collapses in the given style for every player (if standing); acts locally without a session.</summary>
+    public void RequestDemolish(TempleDemolition.FractureStyle style)
+    {
+        if (!IsSpawned)
+        {
+            _demolition.Demolish(style);
+            return;
+        }
+        DemolishRpc((byte)style);
+    }
+
+    /// <summary>Rebuilds for every player (if demolished); acts locally without a session.</summary>
+    public void RequestRebuild()
+    {
+        if (!IsSpawned)
+        {
+            _demolition.Rebuild();
+            return;
+        }
+        RebuildRpc();
+    }
+
     public override void OnNetworkSpawn()
     {
         if (IsServer)
         {
+            _style.Value = (byte)_demolition.CurrentStyle;
             _demolished.Value = _demolition.IsDemolished;
         }
         // Registered on the host too: sending to all delivers to the host's own client as well.
@@ -141,15 +165,56 @@ public class NetworkedDemolition : NetworkBehaviour
         }
         if (_demolition.IsDemolished)
         {
-            _demolition.Rebuild(); // the temple goes back to where it stood, sent by its NetworkTransform
-            _demolished.Value = false;
+            HostRebuild();
         }
-        else if (!_temple.IsHeld)
+        else
         {
-            _temple.TakeOwnershipForHost();
-            _demolition.Demolish();
-            _demolished.Value = true;
+            HostDemolish(null);
         }
+    }
+
+    [Rpc(SendTo.Server)]
+    private void DemolishRpc(byte style)
+    {
+        if (_demolition.IsReady && !_demolition.IsDemolished)
+        {
+            HostDemolish((TempleDemolition.FractureStyle)style);
+        }
+    }
+
+    [Rpc(SendTo.Server)]
+    private void RebuildRpc()
+    {
+        if (_demolition.IsReady && _demolition.IsDemolished)
+        {
+            HostRebuild();
+        }
+    }
+
+    private void HostDemolish(TempleDemolition.FractureStyle? style)
+    {
+        if (_temple.IsHeld)
+        {
+            return; // not out of another player's hands
+        }
+        _temple.TakeOwnershipForHost();
+        if (style.HasValue)
+        {
+            _demolition.Demolish(style.Value);
+        }
+        else
+        {
+            _demolition.Demolish();
+        }
+        // Style first, so guests break the temple into the same set of pieces.
+        _style.Value = (byte)_demolition.CurrentStyle;
+        _demolished.Value = true;
+    }
+
+    private void HostRebuild()
+    {
+        _demolition.Rebuild(); // the temple goes back to where it stood, sent by its NetworkTransform
+        _demolished.Value = false;
     }
 
     private void UpdateHost()
@@ -279,7 +344,7 @@ public class NetworkedDemolition : NetworkBehaviour
         if (_demolished.Value && !_demolition.IsDemolished)
         {
             _demolition.Driven = true;
-            _demolition.Demolish();
+            _demolition.Demolish((TempleDemolition.FractureStyle)_style.Value);
             RequestSnapshotRpc();
         }
         else if (!_demolished.Value && _demolition.IsDemolished)

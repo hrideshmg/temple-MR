@@ -13,8 +13,9 @@ using UnityEngine.Rendering;
 /// The sequence (default timings, matched to MuvarStory.mp3):
 /// - 0-8 s: the room darkens and the temple goes dark, then a warm light rises on it while the title
 ///   card shows the site's name.
-/// - 25.8 s ("neglect, invasion, disasters"): a rumble, and the temple collapses.
-/// - 36.3 s (the pause before the architecture): the rubble flies back and the temple stands again.
+/// - 25 s (end of "...not been kind to this architectural marvel", as in KovilLens): a cannon blast,
+///   and the temple collapses into rubble.
+/// - 36.3 s (the pause before the architecture): the rubble flies back, silently, and the temple stands again.
 /// - 42-58 s: as the narrator names each part (adhisthana, bhitti, devakoshthas, vimana) it lights up
 ///   with a glowing outline, a scan line and a label explaining it. The labels stay until 68.5 s.
 /// - 74.2 s ("revive and restore"): a golden ring rises up the whole temple.
@@ -80,7 +81,7 @@ public class StorySequence : MonoBehaviour
     [SerializeField] private float _sunriseEnd = 8f;
     [SerializeField] private float _titleStart = 2.5f;
     [SerializeField] private float _titleEnd = 9.5f;
-    [SerializeField] private float _collapseTime = 25.8f;
+    [SerializeField] private float _collapseTime = 25f; // when KovilLens fired its cannon
     [SerializeField] private float _rebuildTime = 36.3f;
     [SerializeField] private float _labelsOffTime = 68.5f;
     [SerializeField] private float _restoreTime = 74.2f;
@@ -101,6 +102,8 @@ public class StorySequence : MonoBehaviour
 
     private StoryAudioController _story;
     private NetworkedDemolition _networkedDemolition;
+    private TemplePuzzle _puzzle;            // added by TempleDemolition at Start, so looked up lazily
+    private bool _collapsedByStory;          // host: the story knocked the temple down, so it rebuilds it
     private TempleAnatomy _anatomy;
     private Transform _overlay;
     private AudioSource _sfx;
@@ -172,7 +175,6 @@ public class StorySequence : MonoBehaviour
         _captionText = _captionCard.AddText("", 17f, FontStyles.Normal, StoryCard.TextPrimary, TextAlignmentOptions.Center);
 
         // Prepare the sounds now rather than on the first cue.
-        _ = StorySounds.Rumble;
         _ = StorySounds.Shimmer;
         _ = StorySounds.Chime;
     }
@@ -196,6 +198,20 @@ public class StorySequence : MonoBehaviour
         bool playing = _story.IsPlaying;
         bool active = playing || t > 0.05f;
 
+        // No puzzle outlines, cards or sounds while the narration plays.
+        if (_puzzle == null)
+        {
+            _puzzle = _demolition.GetComponent<TemplePuzzle>();
+        }
+        if (_puzzle != null)
+        {
+            _puzzle.Hidden = playing;
+        }
+        if (!active)
+        {
+            _collapsedByStory = false;
+        }
+
         // One-off cues fire when playback passes them; a seek (a jump of more than a second and a half,
         // e.g. joining part-way through) skips them instead.
         if (playing && t > _lastTime && t - _lastTime < 1.5f)
@@ -216,20 +232,23 @@ public class StorySequence : MonoBehaviour
     {
         bool Crossed(float time) => from < time && to >= time;
 
-        if (Crossed(_collapseTime))
+        // The story collapses the temple into rubble, not the puzzle's parts. If it already lies in
+        // pieces (someone is rebuilding the puzzle) it leaves them alone, and it only rebuilds what
+        // it knocked down itself.
+        if (Crossed(_collapseTime) && _demolition.IsReady && !_demolition.IsDemolished)
         {
-            Play(StorySounds.Rumble, 1f);
-            if (DrivesSharedState && _demolition.IsReady && !_demolition.IsDemolished)
+            if (DrivesSharedState)
             {
-                ToggleDemolition();
+                RequestDemolish();
+                _collapsedByStory = true;
             }
         }
-        if (Crossed(_rebuildTime))
+        if (Crossed(_rebuildTime) && _collapsedByStory)
         {
-            Play(StorySounds.Shimmer, 0.55f);
+            _collapsedByStory = false;
             if (DrivesSharedState && _demolition.IsDemolished)
             {
-                ToggleDemolition();
+                RequestRebuild();
             }
         }
         foreach (var cue in _parts)
@@ -248,15 +267,27 @@ public class StorySequence : MonoBehaviour
     /// <summary>Offline, or the host of a session.</summary>
     private bool DrivesSharedState => _networkedDemolition == null || !_networkedDemolition.IsSpawned || _networkedDemolition.IsServer;
 
-    private void ToggleDemolition()
+    private void RequestDemolish()
     {
-        if (_networkedDemolition != null && _networkedDemolition.IsSpawned)
+        if (_networkedDemolition != null)
         {
-            _networkedDemolition.RequestToggle();
+            _networkedDemolition.RequestDemolish(TempleDemolition.FractureStyle.Rubble);
         }
         else
         {
-            _demolition.Toggle();
+            _demolition.Demolish(TempleDemolition.FractureStyle.Rubble);
+        }
+    }
+
+    private void RequestRebuild()
+    {
+        if (_networkedDemolition != null)
+        {
+            _networkedDemolition.RequestRebuild();
+        }
+        else
+        {
+            _demolition.Rebuild();
         }
     }
 

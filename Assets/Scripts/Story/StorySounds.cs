@@ -1,20 +1,17 @@
 using UnityEngine;
 
 /// <summary>
-/// Sound effects for the story sequence, synthesised once at runtime so the project needs no audio
-/// assets for them: a deep rumble for the collapse, a rising shimmer for the rebuild and a soft
-/// bell for each part of the temple as it is named.
+/// Sound effects for the story and the puzzle, synthesised once at runtime so the project needs no
+/// audio assets for them: a rising shimmer and a soft bell. (The collapse plays KovilLens's cannon
+/// blast, from TempleDemolition.)
 /// </summary>
 public static class StorySounds
 {
-    private static AudioClip _rumble;
     private static AudioClip _shimmer;
     private static AudioClip _chime;
 
     private static int Rate => AudioSettings.outputSampleRate > 0 ? AudioSettings.outputSampleRate : 48000;
 
-    /// <summary>A heavy thump followed by a long, crackling rumble.</summary>
-    public static AudioClip Rumble => _rumble != null ? _rumble : _rumble = Build("StoryRumble", 4f, RumbleSample);
 
     /// <summary>A rising, sparkling swell that lasts about as long as the rebuild.</summary>
     public static AudioClip Shimmer => _shimmer != null ? _shimmer : _shimmer = Build("StoryShimmer", 2.8f, ShimmerSample);
@@ -57,28 +54,6 @@ public static class StorySounds
     private static float Noise(ref State s)
     {
         return (float)(s.Rng.NextDouble() * 2.0 - 1.0);
-    }
-
-    private static float RumbleSample(float t, ref State s)
-    {
-        // Brown noise, low-passed again, for the body of the rumble.
-        s.Brown = Mathf.Clamp(s.Brown + Noise(ref s) * 0.02f, -1f, 1f) * 0.998f;
-        s.Low += (s.Brown - s.Low) * 0.05f;
-        float body = s.Low * Mathf.Min(1f, t / 0.04f) * Mathf.Exp(-t / 1.4f);
-
-        // The initial impact: a sine sweeping down from 70 to 30 Hz.
-        float freq = Mathf.Lerp(70f, 30f, Mathf.Clamp01(t / 0.6f));
-        float thump = Mathf.Sin(2f * Mathf.PI * freq * t) * Mathf.Exp(-t / 0.35f) * 0.8f;
-
-        // Sparse cracks of falling stone.
-        if (s.Rng.NextDouble() < 0.0009 * Mathf.Exp(-t / 1.2f))
-        {
-            s.Crackle = 1f;
-        }
-        s.Crackle *= 0.995f;
-        float crackle = Noise(ref s) * s.Crackle * 0.25f;
-
-        return body * 3f + thump + crackle;
     }
 
     private static float ShimmerSample(float t, ref State s)

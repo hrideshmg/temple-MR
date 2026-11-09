@@ -48,14 +48,20 @@ public class TemplePuzzle : MonoBehaviour
     private float _infoTime = 7f;
 
     public int PlacedCount { get; private set; }
-    public int TotalCount => _demolition != null && _demolition.IsReady ? _demolition.PieceCount : 0;
+    public int TotalCount => _slots != null ? _slots.Length : 0; // the architectural pieces
 
     /// <summary>Bit i set: piece i is in place.</summary>
     public ulong PlacedMask { get; private set; }
 
     /// <summary>True while the temple lies in pieces that can be put back.</summary>
-    public bool IsActive => _demolition != null && _demolition.IsArchitectural && _demolition.IsReady
+    public bool IsActive => !Hidden && _demolition != null && _demolition.IsArchitectural && _demolition.IsReady
                             && _demolition.IsDemolished && !_demolition.IsReassembling;
+
+    /// <summary>
+    /// Set while the story plays: no slot outlines, cards or sounds, and nothing snaps in. Placed
+    /// pieces stay placed, and the puzzle carries on once the story stops.
+    /// </summary>
+    public bool Hidden { get; set; }
 
     // Ring-like parts look the same from every side, so only their tilt has to be right.
     private static readonly HashSet<TempleParts.Id> RoundParts = new HashSet<TempleParts.Id>
@@ -169,7 +175,7 @@ public class TemplePuzzle : MonoBehaviour
             return;
         }
         // Standing again: celebrate if it was rebuilt by hand (on every headset), then start over.
-        if (_built && PlacedCount > 0 && PlacedCount == TotalCount && !_completeShown)
+        if (_built && !Hidden && PlacedCount > 0 && PlacedCount == TotalCount && !_completeShown)
         {
             _completeShown = true;
             ShowCompletion();
@@ -263,11 +269,11 @@ public class TemplePuzzle : MonoBehaviour
     /// <summary>Guests: adopt the host's set of placed pieces.</summary>
     public void ApplyPlacedMask(ulong mask)
     {
-        if (!_built || mask == PlacedMask)
+        if (!_built || mask == PlacedMask || !_demolition.IsArchitectural)
         {
             return;
         }
-        for (int i = 0; i < _demolition.PieceCount && i < 64; i++)
+        for (int i = 0; i < TotalCount && i < 64; i++)
         {
             bool shouldBe = (mask & (1UL << i)) != 0;
             if (shouldBe && !IsPlaced(i))
@@ -346,12 +352,17 @@ public class TemplePuzzle : MonoBehaviour
 
     private void Update()
     {
-        if (_demolition == null || !_demolition.IsReady || !_demolition.IsArchitectural)
+        if (_demolition == null || !_demolition.IsReady)
         {
             return;
         }
         if (!_built)
         {
+            // Slots are built from the architectural pieces, so wait until those are the ones in use.
+            if (!_demolition.IsArchitectural)
+            {
+                return;
+            }
             Build();
         }
         Camera cam = Camera.main;
@@ -483,6 +494,13 @@ public class TemplePuzzle : MonoBehaviour
     {
         _overlay.position = transform.position;
 
+        // Hidden for the story, and after a rubble collapse (the card anchors are architectural pieces).
+        if (Hidden || !_demolition.IsArchitectural)
+        {
+            _infoUntil = 0f;
+            _hintUntil = 0f;
+        }
+
         float info = Mathf.Clamp01((_infoUntil - Time.time) / 0.5f);
         _infoCard.Alpha = info;
         if (info > 0f)
@@ -526,7 +544,7 @@ public class TemplePuzzle : MonoBehaviour
 
     private void Play(AudioClip clip, float volume)
     {
-        if (_sfx != null && clip != null)
+        if (_sfx != null && clip != null && !Hidden)
         {
             _sfx.transform.position = transform.position;
             _sfx.PlayOneShot(clip, volume);

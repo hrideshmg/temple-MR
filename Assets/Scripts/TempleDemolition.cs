@@ -11,14 +11,15 @@ using Random = UnityEngine.Random;
 /// <summary>
 /// Demolishes the temple into rigid-body rubble and rebuilds it on demand.
 ///
-/// At startup the temple is pre-fractured once (off the main thread), in one of two styles:
-/// - <b>Architectural</b> (default): it comes apart into its real parts, the platform, base, the
-///   four walls, cornice, storeys, dome and finial, plus Nandi and the door guardians
-///   (see <see cref="TempleParts"/>), so it can be rebuilt piece by piece as a puzzle
-///   (<see cref="TemplePuzzle"/>, added automatically).
+/// At startup the temple is pre-fractured (off the main thread) in both styles, and each collapse
+/// picks one (<see cref="Demolish(FractureStyle)"/>):
+/// - <b>Architectural</b>: it comes apart into its real parts, the platform, base, the four walls,
+///   cornice, storeys, dome and finial, plus Nandi and the door guardians (see
+///   <see cref="TempleParts"/>), so it can be rebuilt piece by piece as a puzzle
+///   (<see cref="TemplePuzzle"/>, added automatically). The panel's Demolish uses this by default.
 /// - <b>Rubble</b>: large shell meshes are cut into irregular Voronoi chunks by assigning each
 ///   triangle to its nearest seed point; mid-sized parts (pillars, kalashas, statues) fall as pieces
-///   of their own; tiny trim rides along with the nearest chunk.
+///   of their own; tiny trim rides along with the nearest chunk. The story's collapse uses this.
 ///
 /// <see cref="Demolish"/> trembles the temple, swaps it for the pieces and releases them bottom-first:
 /// lower pieces kick outward, upper ones sag inward. With <see cref="_explosive"/> on, pieces that
@@ -40,8 +41,8 @@ public class TempleDemolition : MonoBehaviour
 
     [Header("Fracture")]
     [SerializeField]
-    [Tooltip("Architectural: the temple comes apart into its named parts and can be rebuilt as a puzzle. " +
-             "Rubble: random chunks.")]
+    [Tooltip("Style for Demolish() without one (the panel's button). Architectural: the temple comes apart " +
+             "into its named parts and can be rebuilt as a puzzle. Rubble: random chunks.")]
     private FractureStyle _fractureStyle = FractureStyle.Architectural;
 
     [SerializeField]
@@ -117,6 +118,16 @@ public class TempleDemolition : MonoBehaviour
              "catching anything that slips through gaps in the scanned floor.")]
     private float _roomGroundSize = 30f;
 
+    [Header("Sound")]
+    [SerializeField]
+    [Tooltip("Played on every collapse (the cannon blast KovilLens used). If empty, Resources/<Collapse Clip Name> is loaded.")]
+    private AudioClip _collapseClip;
+
+    [SerializeField] private string _collapseClipName = "cannon_fire";
+
+    [SerializeField]
+    [Range(0f, 1f)] private float _collapseVolume = 0.9f;
+
     [Header("Rebuild")]
     [SerializeField]
     [Tooltip("Seconds the rubble takes to fly back into place on Rebuild. 0 snaps the temple back at once.")]
@@ -147,10 +158,13 @@ public class TempleDemolition : MonoBehaviour
 
     public int PieceCount => _pieces.Count;
 
+    /// <summary>The style of the pieces in use: of the current collapse, or of the last one.</summary>
+    public FractureStyle CurrentStyle => _active.Style;
+
     public Rigidbody GetPieceBody(int index) => _pieces[index].Body;
 
-    /// <summary>True when the temple breaks into its architectural parts (and can be rebuilt as a puzzle).</summary>
-    public bool IsArchitectural => _fractureStyle == FractureStyle.Architectural;
+    /// <summary>True when the pieces in use are the architectural parts (that can be rebuilt as a puzzle).</summary>
+    public bool IsArchitectural => _active.Style == FractureStyle.Architectural;
 
     /// <summary>Which architectural part (<see cref="TempleParts.Id"/>) a piece is, or -1 for rubble.</summary>
     public int GetPiecePart(int index) => _pieces[index].PartId;
@@ -252,19 +266,33 @@ public class TempleDemolition : MonoBehaviour
         public HandGrabInteractable HandGrab;
     }
 
-    private readonly List<Piece> _pieces = new List<Piece>();
+    /// <summary>The pieces of one fracture style, under their own (normally hidden) root.</summary>
+    private class FractureSet
+    {
+        public FractureStyle Style;
+        public readonly List<Piece> Pieces = new List<Piece>();
+        // Pieces whose boxes overlap in the intact temple. Unless explosive, they must not collide with
+        // each other, or the solver blasts them apart the moment they turn dynamic.
+        public readonly List<(Collider, Collider)> IgnoredPairs = new List<(Collider, Collider)>();
+        public Transform Root;
+        public BoxCollider Ground;
+    }
+
+    private readonly FractureSet _architecturalSet = new FractureSet { Style = FractureStyle.Architectural };
+    private readonly FractureSet _rubbleSet = new FractureSet { Style = FractureStyle.Rubble };
+    private FractureSet _active;
+
+    private List<Piece> _pieces => _active.Pieces;
+    private Transform _debrisRoot => _active.Root;
+    private BoxCollider _ground => _active.Ground;
+    private List<(Collider, Collider)> _ignoredPairs => _active.IgnoredPairs;
+
     private readonly List<Renderer> _intactRenderers = new List<Renderer>();
     private readonly List<Collider> _intactColliders = new List<Collider>();
     private readonly List<Behaviour> _grabBehaviours = new List<Behaviour>();
     private readonly List<Rigidbody> _falling = new List<Rigidbody>();
     private readonly Dictionary<Material, Material> _doubleSided = new Dictionary<Material, Material>();
 
-    // Pieces whose boxes overlap in the intact temple. Unless explosive, they must not collide with
-    // each other, or the solver blasts them apart the moment they turn dynamic.
-    private readonly List<(Collider, Collider)> _ignoredPairs = new List<(Collider, Collider)>();
-
-    private Transform _debrisRoot;
-    private BoxCollider _ground;
     private Bounds _localBounds;
     private Coroutine _routine;
     private bool _trembling;
@@ -273,17 +301,41 @@ public class TempleDemolition : MonoBehaviour
     private Quaternion _preDemolishRotation;
     private Rigidbody _rootBody;
     private bool _rootWasKinematic;
+    private AudioSource _audio;
+
+    private void Awake()
+    {
+        _active = SetFor(_fractureStyle);
+    }
 
     private void Start()
     {
-        if (IsArchitectural && GetComponent<TemplePuzzle>() == null)
+        if (GetComponent<TemplePuzzle>() == null)
         {
             gameObject.AddComponent<TemplePuzzle>();
         }
+        if (_collapseClip == null && !string.IsNullOrEmpty(_collapseClipName))
+        {
+            _collapseClip = Resources.Load<AudioClip>(_collapseClipName);
+        }
+        _audio = gameObject.AddComponent<AudioSource>();
+        _audio.playOnAwake = false;
+        _audio.spatialBlend = 0.85f;
+        _audio.minDistance = 0.8f;
+        _audio.maxDistance = 12f;
+        _audio.rolloffMode = AudioRolloffMode.Linear;
         StartCoroutine(BuildRoutine());
     }
 
+    private FractureSet SetFor(FractureStyle style) => style == FractureStyle.Rubble ? _rubbleSet : _architecturalSet;
+
+    /// <summary>Collapses in the default style (<see cref="_fractureStyle"/>).</summary>
     public void Demolish()
+    {
+        Demolish(_fractureStyle);
+    }
+
+    public void Demolish(FractureStyle style)
     {
         if (!IsReady || IsDemolished)
         {
@@ -295,6 +347,7 @@ public class TempleDemolition : MonoBehaviour
             StopRoutine();
             FinishRebuild();
         }
+        _active = SetFor(style);
         // Remember where the temple stood; the root's own Rigidbody must not fall with the rubble.
         _preDemolishPosition = transform.position;
         _preDemolishRotation = transform.rotation;
@@ -311,6 +364,11 @@ public class TempleDemolition : MonoBehaviour
         }
         UnlockAll();
         IsDemolished = true;
+        // The blast lands as the tremble gives way, every collapse and on every headset.
+        if (_audio != null && _collapseClip != null)
+        {
+            _audio.PlayOneShot(_collapseClip, _collapseVolume);
+        }
         DemolishedChanged?.Invoke(true);
         _routine = StartCoroutine(CollapseRoutine());
     }
@@ -656,12 +714,16 @@ public class TempleDemolition : MonoBehaviour
             _grabBehaviours.Add(grab);
         }
 
-        if (IsArchitectural)
-        {
-            yield return BuildArchitecturalRoutine(sources);
-            yield break;
-        }
+        // Rubble first: it reads the vertex data of the big meshes and frees it again; then the
+        // architectural parts read every mesh afresh.
+        yield return BuildRubbleRoutine(sources);
+        yield return BuildArchitecturalRoutine(sources);
+        _active = SetFor(_fractureStyle);
+        IsReady = true;
+    }
 
+    private IEnumerator BuildRubbleRoutine(List<SourceMesh> sources)
+    {
         // Classify by size.
         float size = _localBounds.size.magnitude;
         var split = new List<SourceMesh>();
@@ -711,7 +773,7 @@ public class TempleDemolition : MonoBehaviour
             yield break;
         }
 
-        BuildPieces(task.Result, whole, tiny);
+        BuildPieces(_rubbleSet, task.Result, whole, tiny);
 
         // Free the CPU-side copies we no longer need.
         foreach (var src in split)
@@ -721,8 +783,6 @@ public class TempleDemolition : MonoBehaviour
             src.Uvs = null;
             src.SubmeshTriangles = null;
         }
-
-        IsReady = true;
     }
 
     /// <summary>Worker-thread Voronoi fracture. Pure data: no Unity object access except value types.</summary>
@@ -956,7 +1016,7 @@ public class TempleDemolition : MonoBehaviour
             yield break;
         }
 
-        BuildPieces(task.Result, new List<SourceMesh>(), new List<SourceMesh>());
+        BuildPieces(_architecturalSet, task.Result, new List<SourceMesh>(), new List<SourceMesh>());
         foreach (var src in sources)
         {
             src.Vertices = null;
@@ -964,19 +1024,19 @@ public class TempleDemolition : MonoBehaviour
             src.Uvs = null;
             src.SubmeshTriangles = null;
         }
-        IsReady = true;
     }
 
-    private void BuildPieces(List<ChunkData> chunks, List<SourceMesh> whole, List<SourceMesh> tiny)
+    private void BuildPieces(FractureSet set, List<ChunkData> chunks, List<SourceMesh> whole, List<SourceMesh> tiny)
     {
-        var rootGo = new GameObject(name + " (Rubble)");
+        _active = set; // AddPiece and FindOverlappingPairs work on the active set
+        var rootGo = new GameObject($"{name} ({set.Style} pieces)");
         rootGo.SetActive(false);
-        _debrisRoot = rootGo.transform;
+        set.Root = rootGo.transform;
 
         // Invisible ground, placed on every collapse by PlaceGround.
         var groundGo = new GameObject("Ground");
-        groundGo.transform.SetParent(_debrisRoot, false);
-        _ground = groundGo.AddComponent<BoxCollider>();
+        groundGo.transform.SetParent(set.Root, false);
+        set.Ground = groundGo.AddComponent<BoxCollider>();
 
         var chunkTransforms = new List<Transform>();
         int index = 0;
@@ -1166,9 +1226,12 @@ public class TempleDemolition : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (_debrisRoot != null)
+        foreach (var set in new[] { _architecturalSet, _rubbleSet })
         {
-            Destroy(_debrisRoot.gameObject);
+            if (set.Root != null)
+            {
+                Destroy(set.Root.gameObject);
+            }
         }
         foreach (var m in _doubleSided.Values)
         {
