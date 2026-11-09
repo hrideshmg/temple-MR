@@ -6,4 +6,3 @@ Unity 6000.5.5f1 · URP · Meta XR SDK 207 · Netcode for GameObjects
 
 - **New to the project? Start with [docs/HANDOVER.md](docs/HANDOVER.md)**: status, setup and open problems.
 - **How it works:** [docs/PROJECT_DOCUMENTATION.md](docs/PROJECT_DOCUMENTATION.md).
-- **Paper draft:** [paper/](paper).
