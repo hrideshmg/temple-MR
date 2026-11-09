@@ -69,10 +69,10 @@ public class TempleAnatomy : MonoBehaviour
     private class PartVisual
     {
         public Part Part;
-        public Outline Frame;
-        public Outline Scan;
-        public Outline Pin;
-        public Outline Leader;
+        public GlowOutline Frame;
+        public GlowOutline Scan;
+        public GlowOutline Pin;
+        public GlowOutline Leader;
         public StoryCard Label;
         public Rect Footprint;               // temple space, at the part's height range
         public List<Vector3> NicheCentres = new List<Vector3>(); // temple space
@@ -91,8 +91,8 @@ public class TempleAnatomy : MonoBehaviour
     }
 
     private readonly List<PartVisual> _visuals = new List<PartVisual>();
-    private Outline _sweep;
-    private Outline _sweepTrail;
+    private GlowOutline _sweep;
+    private GlowOutline _sweepTrail;
     private float _sweepU = -1f;
     private float _sweepAlpha;
     private float _masterAlpha = 1f;
@@ -103,9 +103,7 @@ public class TempleAnatomy : MonoBehaviour
     {
         _temple = temple;
         _parts = parts;
-        var shader = Shader.Find("Sprites/Default");
-        _lineMaterial = shader != null ? new Material(shader) : new Material(UnityEngine.UI.Graphic.defaultGraphicMaterial);
-        _lineMaterial.name = "StoryLines";
+        _lineMaterial = GlowOutline.CreateMaterial();
         StartCoroutine(AnalyseRoutine());
     }
 
@@ -254,10 +252,10 @@ public class TempleAnatomy : MonoBehaviour
         {
             var v = new PartVisual { Part = part };
             v.Footprint = Pad(Footprint(part.From, part.To), 0.03f);
-            v.Frame = new Outline("Frame_" + part.Title, root, _lineMaterial);
-            v.Scan = new Outline("Scan_" + part.Title, root, _lineMaterial);
-            v.Pin = new Outline("Pin_" + part.Title, root, _lineMaterial);
-            v.Leader = new Outline("Leader_" + part.Title, root, _lineMaterial);
+            v.Frame = new GlowOutline("Frame_" + part.Title, root, _lineMaterial);
+            v.Scan = new GlowOutline("Scan_" + part.Title, root, _lineMaterial);
+            v.Pin = new GlowOutline("Pin_" + part.Title, root, _lineMaterial);
+            v.Leader = new GlowOutline("Leader_" + part.Title, root, _lineMaterial);
 
             if (part.Kind == PartKind.Band)
             {
@@ -282,12 +280,12 @@ public class TempleAnatomy : MonoBehaviour
             _visuals.Add(v);
         }
 
-        _sweep = new Outline("RestoreSweep", root, _lineMaterial);
-        _sweepTrail = new Outline("RestoreSweepTrail", root, _lineMaterial);
+        _sweep = new GlowOutline("RestoreSweep", root, _lineMaterial);
+        _sweepTrail = new GlowOutline("RestoreSweepTrail", root, _lineMaterial);
     }
 
     /// <summary>Rings that follow the temple's silhouette through the band, joined at the corners.</summary>
-    private void BuildBandFrame(Outline outline, float from, float to)
+    private void BuildBandFrame(GlowOutline outline, float from, float to)
     {
         int rings = Mathf.Max(2, Mathf.RoundToInt((to - from) / 0.1f) + 1);
         var corners = new List<Vector3[]>();
@@ -371,7 +369,7 @@ public class TempleAnatomy : MonoBehaviour
     public int PartCount => _parts?.Length ?? 0;
 
     /// <summary>Sets how visible part <paramref name="index"/> is.</summary>
-    /// <param name="frame">Outline brightness, 0-1.</param>
+    /// <param name="frame">GlowOutline brightness, 0-1.</param>
     /// <param name="label">Label card opacity, 0-1.</param>
     /// <param name="scan">Progress of the scan line up through the part, 0-1, or negative for none.</param>
     public void SetPart(int index, float frame, float label, float scan)
@@ -593,119 +591,6 @@ public class TempleAnatomy : MonoBehaviour
         if (_lineMaterial != null)
         {
             Destroy(_lineMaterial);
-        }
-    }
-
-    // =====================================================================  line drawing
-
-    /// <summary>
-    /// A set of polylines in temple space, each drawn as a thin bright core with a wide, faint glow
-    /// around it. Positions are recomputed in world space every frame, so widths stay in metres
-    /// whatever the temple's scale.
-    /// </summary>
-    private class Outline
-    {
-        private readonly Transform _parent;
-        private readonly Material _material;
-        private readonly string _name;
-        private readonly List<Vector3[]> _lines = new List<Vector3[]>();
-        private readonly List<bool> _loops = new List<bool>();
-        private readonly List<LineRenderer> _core = new List<LineRenderer>();
-        private readonly List<LineRenderer> _glow = new List<LineRenderer>();
-        private readonly List<Vector3[]> _buffers = new List<Vector3[]>();
-
-        public Outline(string name, Transform parent, Material material)
-        {
-            _name = name;
-            _parent = parent;
-            _material = material;
-        }
-
-        public void AddLine(Vector3[] points, bool loop)
-        {
-            _lines.Add(points);
-            _loops.Add(loop);
-            _buffers.Add(new Vector3[points.Length]);
-            _glow.Add(NewRenderer(_name + "_Glow", 0));
-            _core.Add(NewRenderer(_name, 1));
-        }
-
-        /// <summary>Replaces the outline with one closed loop (allocates the renderers once).</summary>
-        public void SetSingleLoop(Vector3[] points)
-        {
-            SetSingle(points, true);
-        }
-
-        public void SetSingleLine(Vector3[] points)
-        {
-            SetSingle(points, false);
-        }
-
-        private void SetSingle(Vector3[] points, bool loop)
-        {
-            if (_lines.Count == 0)
-            {
-                AddLine(points, loop);
-                return;
-            }
-            _lines[0] = points;
-            _loops[0] = loop;
-            if (_buffers[0].Length != points.Length)
-            {
-                _buffers[0] = new Vector3[points.Length];
-            }
-        }
-
-        private LineRenderer NewRenderer(string name, int order)
-        {
-            var go = new GameObject(name);
-            go.transform.SetParent(_parent, false);
-            var lr = go.AddComponent<LineRenderer>();
-            lr.sharedMaterial = _material;
-            lr.useWorldSpace = true;
-            lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            lr.receiveShadows = false;
-            lr.numCapVertices = 2;
-            lr.numCornerVertices = 2;
-            lr.alignment = LineAlignment.View;
-            lr.sortingOrder = order;
-            lr.enabled = false;
-            return lr;
-        }
-
-        public void Draw(Matrix4x4 toWorld, Color color, float alpha, float width, float glowWidth)
-        {
-            bool visible = alpha > 0.002f;
-            for (int i = 0; i < _lines.Count; i++)
-            {
-                var core = _core[i];
-                var glow = _glow[i];
-                if (!visible)
-                {
-                    core.enabled = false;
-                    glow.enabled = false;
-                    continue;
-                }
-                Vector3[] pts = _lines[i];
-                Vector3[] buffer = _buffers[i];
-                for (int k = 0; k < pts.Length; k++)
-                {
-                    buffer[k] = toWorld.MultiplyPoint3x4(pts[k]);
-                }
-                Setup(core, buffer, _loops[i], width, new Color(color.r, color.g, color.b, alpha));
-                Setup(glow, buffer, _loops[i], glowWidth, new Color(color.r, color.g, color.b, alpha * 0.18f));
-            }
-        }
-
-        private static void Setup(LineRenderer lr, Vector3[] positions, bool loop, float width, Color color)
-        {
-            lr.enabled = true;
-            lr.positionCount = positions.Length;
-            lr.SetPositions(positions);
-            lr.loop = loop;
-            lr.widthMultiplier = width;
-            lr.startColor = color;
-            lr.endColor = color;
         }
     }
 }

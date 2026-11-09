@@ -16,6 +16,9 @@ using UnityEngine;
 /// Guests can still pick up and throw rubble: while a guest holds a piece, its pose is sent to the
 /// host, and on release the throw velocity, so the host carries on simulating it.
 ///
+/// For the rebuild puzzle (<see cref="TemplePuzzle"/>) the host decides every placement, including
+/// guests' (checked when their throw arrives), and shares which pieces are in place as a bit mask.
+///
 /// Without a session this does nothing and <see cref="TempleDemolition"/> works as before.
 /// Attach to the Temple root, next to <see cref="TempleDemolition"/> and <see cref="NetworkedTemple"/>.
 /// </summary>
@@ -40,6 +43,12 @@ public class NetworkedDemolition : NetworkBehaviour
     private float _smoothing = 18f;
 
     private readonly NetworkVariable<bool> _demolished = new NetworkVariable<bool>();
+    private readonly NetworkVariable<ulong> _placed = new NetworkVariable<ulong>(); // puzzle: bit i = piece i in place
+
+    private TemplePuzzle _puzzle;
+
+    // Added by TempleDemolition at Start, so looked up lazily.
+    private TemplePuzzle Puzzle => _puzzle != null ? _puzzle : (_puzzle = GetComponent<TemplePuzzle>());
 
     private TempleDemolition _demolition;
     private NetworkedTemple _temple;
@@ -151,6 +160,10 @@ public class NetworkedDemolition : NetworkBehaviour
 
     private void UpdateHost()
     {
+        if (Puzzle != null && _placed.Value != Puzzle.PlacedMask)
+        {
+            _placed.Value = Puzzle.PlacedMask;
+        }
         if (!_demolition.IsDemolished)
         {
             return;
@@ -240,7 +253,7 @@ public class NetworkedDemolition : NetworkBehaviour
     [Rpc(SendTo.Server, Delivery = RpcDelivery.Unreliable)]
     private void HoldPieceRpc(ushort index, Vector3 position, Quaternion rotation)
     {
-        if (!_demolition.IsDemolished || index >= _demolition.PieceCount)
+        if (!_demolition.IsDemolished || index >= _demolition.PieceCount || _demolition.IsPieceLocked(index))
         {
             return;
         }
@@ -253,7 +266,7 @@ public class NetworkedDemolition : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void ThrowPieceRpc(ushort index, Vector3 position, Quaternion rotation, Vector3 velocity, Vector3 angularVelocity)
     {
-        if (!_demolition.IsDemolished || index >= _demolition.PieceCount)
+        if (!_demolition.IsDemolished || index >= _demolition.PieceCount || _demolition.IsPieceLocked(index))
         {
             return;
         }
@@ -262,6 +275,8 @@ public class NetworkedDemolition : NetworkBehaviour
         rb.position = position;
         rb.rotation = rotation;
         _demolition.ThrowPiece(index, velocity, angularVelocity);
+        // Let go near its slot: the puzzle may set it in place.
+        Puzzle?.TrySnap(index);
     }
 
     // =====================================================================  guest
@@ -283,6 +298,7 @@ public class NetworkedDemolition : NetworkBehaviour
         {
             return;
         }
+        Puzzle?.ApplyPlacedMask(_placed.Value);
 
         EnsureGuestArrays();
         float dt = Time.deltaTime;
@@ -290,7 +306,7 @@ public class NetworkedDemolition : NetworkBehaviour
         for (int i = 0; i < _grabbables.Length; i++)
         {
             Transform t = _demolition.GetPieceBody(i).transform;
-            bool held = _grabbables[i] != null && _grabbables[i].SelectingPointsCount > 0;
+            bool held = _grabbables[i] != null && _grabbables[i].SelectingPointsCount > 0 && !_demolition.IsPieceLocked(i);
             if (held)
             {
                 TrackHeldPiece(i, t, dt);

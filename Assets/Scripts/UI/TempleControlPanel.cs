@@ -696,7 +696,12 @@ public class TempleControlPanel : MonoBehaviour
         if (_demolition != null)
         {
             bool down = _demolition.IsDemolished;
-            _demolishButton.SetLabel(!_demolition.IsReady ? "Preparing..." : (down ? "Rebuild temple" : "Demolish temple"));
+            // While the pieces are being put back by hand, show how far along the puzzle is.
+            var puzzle = _demolition.IsArchitectural ? _demolition.GetComponent<TemplePuzzle>() : null;
+            string rebuild = puzzle != null && puzzle.IsActive && puzzle.TotalCount > 0
+                ? $"Rebuild ({puzzle.PlacedCount}/{puzzle.TotalCount} placed)"
+                : "Rebuild temple";
+            _demolishButton.SetLabel(!_demolition.IsReady ? "Preparing..." : (down ? rebuild : "Demolish temple"));
             _demolishButton.SetIcon(down ? UISpriteFactory.Icon.Home : UISpriteFactory.Icon.Crack);
             // The host won't demolish the temple out of another player's hands.
             _demolishButton.SetEnabled(down || _networkedTemple == null || !_networkedTemple.IsHeldByOther);

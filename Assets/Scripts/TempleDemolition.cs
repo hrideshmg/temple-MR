@@ -11,11 +11,14 @@ using Random = UnityEngine.Random;
 /// <summary>
 /// Demolishes the temple into rigid-body rubble and rebuilds it on demand.
 ///
-/// At startup the temple is pre-fractured once (off the main thread):
-/// - Large shell meshes are cut into irregular Voronoi chunks by assigning each triangle to its
-///   nearest seed point. The model is dense, so the jagged triangle edges read as broken stone.
-/// - Mid-sized parts (pillars, kalashas, statues) fall as pieces of their own.
-/// - Tiny trim rides along with the nearest chunk instead of getting its own rigid body.
+/// At startup the temple is pre-fractured once (off the main thread), in one of two styles:
+/// - <b>Architectural</b> (default): it comes apart into its real parts, the platform, base, the
+///   four walls, cornice, storeys, dome and finial, plus Nandi and the door guardians
+///   (see <see cref="TempleParts"/>), so it can be rebuilt piece by piece as a puzzle
+///   (<see cref="TemplePuzzle"/>, added automatically).
+/// - <b>Rubble</b>: large shell meshes are cut into irregular Voronoi chunks by assigning each
+///   triangle to its nearest seed point; mid-sized parts (pillars, kalashas, statues) fall as pieces
+///   of their own; tiny trim rides along with the nearest chunk.
 ///
 /// <see cref="Demolish"/> trembles the temple, swaps it for the pieces and releases them bottom-first:
 /// lower pieces kick outward, upper ones sag inward. With <see cref="_explosive"/> on, pieces that
@@ -25,9 +28,26 @@ using Random = UnityEngine.Random;
 /// </summary>
 public class TempleDemolition : MonoBehaviour
 {
+    public enum FractureStyle
+    {
+        /// <summary>Breaks along the temple's architectural parts, for the rebuild puzzle.</summary>
+        Architectural,
+        /// <summary>Random Voronoi rubble.</summary>
+        Rubble,
+    }
+
     [Header("Fracture")]
     [SerializeField]
-    [Tooltip("How many chunks the large shell meshes are cut into.")]
+    [Tooltip("Architectural: the temple comes apart into its named parts and can be rebuilt as a puzzle. " +
+             "Rubble: random chunks.")]
+    private FractureStyle _fractureStyle = FractureStyle.Architectural;
+
+    [SerializeField]
+    [Tooltip("Architectural style: heights (fractions of the temple's height) where the stacked parts are cut.")]
+    private TempleParts.Cuts _partCuts = new TempleParts.Cuts();
+
+    [SerializeField]
+    [Tooltip("Rubble style: how many chunks the large shell meshes are cut into.")]
     private int _chunkCount = 40;
 
     [SerializeField]
@@ -127,9 +147,88 @@ public class TempleDemolition : MonoBehaviour
 
     public Rigidbody GetPieceBody(int index) => _pieces[index].Body;
 
+    /// <summary>True when the temple breaks into its architectural parts (and can be rebuilt as a puzzle).</summary>
+    public bool IsArchitectural => _fractureStyle == FractureStyle.Architectural;
+
+    /// <summary>Which architectural part (<see cref="TempleParts.Id"/>) a piece is, or -1 for rubble.</summary>
+    public int GetPiecePart(int index) => _pieces[index].PartId;
+
+    /// <summary>The piece's mesh bounds in its own space.</summary>
+    public Bounds GetPieceBounds(int index) => _pieces[index].Bounds;
+
+    /// <summary>World pose a piece has in the standing temple (its slot).</summary>
+    public Pose GetPieceHome(int index)
+    {
+        Piece p = _pieces[index];
+        return new Pose(_debrisRoot.TransformPoint(p.LocalPosition), _debrisRoot.rotation * p.LocalRotation);
+    }
+
+    /// <summary>World scale of the pieces (they share the temple's scale).</summary>
+    public Vector3 PieceScale => _debrisRoot.lossyScale;
+
+    /// <summary>The temple's height in metres.</summary>
+    public float WorldHeight => _localBounds.size.y * transform.lossyScale.y;
+
+    public bool IsPieceLocked(int index) => _pieces[index].Locked;
+
+    /// <summary>
+    /// Fixes a piece in its slot: posed there, kinematic, no longer grabbable. Used by the puzzle once
+    /// a piece is placed. Undone when the temple is demolished again or rebuilt.
+    /// </summary>
+    public void LockPiece(int index)
+    {
+        Piece p = _pieces[index];
+        if (p.Locked)
+        {
+            return;
+        }
+        p.Locked = true;
+        _pieces[index] = p;
+        _falling.Remove(p.Body);
+        if (!p.Body.isKinematic)
+        {
+            p.Body.linearVelocity = Vector3.zero;
+            p.Body.angularVelocity = Vector3.zero;
+        }
+        p.Body.isKinematic = true;
+        p.Body.transform.SetLocalPositionAndRotation(p.LocalPosition, p.LocalRotation);
+        SetPieceGrabbable(p, false);
+    }
+
+    private void UnlockAll()
+    {
+        for (int i = 0; i < _pieces.Count; i++)
+        {
+            Piece p = _pieces[i];
+            if (!p.Locked)
+            {
+                continue;
+            }
+            p.Locked = false;
+            _pieces[i] = p;
+            SetPieceGrabbable(p, true);
+        }
+    }
+
+    private static void SetPieceGrabbable(Piece p, bool grabbable)
+    {
+        if (p.Grabbable != null)
+        {
+            p.Grabbable.enabled = grabbable;
+        }
+        if (p.HandGrab != null)
+        {
+            p.HandGrab.enabled = grabbable;
+        }
+    }
+
     /// <summary>Releases a piece into the simulation with the given velocity (e.g. thrown by another player).</summary>
     public void ThrowPiece(int index, Vector3 velocity, Vector3 angularVelocity)
     {
+        if (_pieces[index].Locked)
+        {
+            return;
+        }
         Rigidbody rb = _pieces[index].Body;
         rb.isKinematic = false;
         rb.linearVelocity = velocity;
@@ -147,6 +246,11 @@ public class TempleDemolition : MonoBehaviour
         public Quaternion LocalRotation;
         public float Height;          // 0 = base, 1 = top
         public Vector3 Radial;        // horizontal direction away from the temple's axis (temple space)
+        public int PartId;            // TempleParts.Id, or -1 for rubble
+        public bool Locked;           // placed back in its slot by the puzzle
+        public Bounds Bounds;         // mesh bounds in the piece's own space
+        public Grabbable Grabbable;
+        public HandGrabInteractable HandGrab;
     }
 
     private readonly List<Piece> _pieces = new List<Piece>();
@@ -173,6 +277,10 @@ public class TempleDemolition : MonoBehaviour
 
     private void Start()
     {
+        if (IsArchitectural && GetComponent<TemplePuzzle>() == null)
+        {
+            gameObject.AddComponent<TemplePuzzle>();
+        }
         StartCoroutine(BuildRoutine());
     }
 
@@ -204,6 +312,7 @@ public class TempleDemolition : MonoBehaviour
             }
             _rootBody.isKinematic = true;
         }
+        UnlockAll();
         IsDemolished = true;
         DemolishedChanged?.Invoke(true);
         _routine = StartCoroutine(CollapseRoutine());
@@ -254,6 +363,7 @@ public class TempleDemolition : MonoBehaviour
     private void FinishRebuild()
     {
         IsReassembling = false;
+        UnlockAll();
         _debrisRoot.gameObject.SetActive(false);
         if (_rootBody != null)
         {
@@ -484,10 +594,12 @@ public class TempleDemolition : MonoBehaviour
         public Vector3[] Normals;
         public Vector2[] Uvs;
         public int[][] SubmeshTriangles;
+        public string[] MaterialNames; // architectural style: lower-case material and texture names
     }
 
     private class ChunkData
     {
+        public int PartId = -1;
         public Vector3 Center;
         public Vector3[] Vertices;
         public Vector3[] Normals;
@@ -549,6 +661,12 @@ public class TempleDemolition : MonoBehaviour
         foreach (var grab in GetComponentsInChildren<GrabInteractable>(true))
         {
             _grabBehaviours.Add(grab);
+        }
+
+        if (IsArchitectural)
+        {
+            yield return BuildArchitecturalRoutine(sources);
+            yield break;
         }
 
         // Classify by size.
@@ -617,29 +735,16 @@ public class TempleDemolition : MonoBehaviour
     /// <summary>Worker-thread Voronoi fracture. Pure data: no Unity object access except value types.</summary>
     private static List<ChunkData> Fracture(List<SourceMesh> split, int chunkCount, int seed)
     {
-        var chunks = new List<ChunkData>();
         if (chunkCount == 0)
         {
-            return chunks;
+            return new List<ChunkData>();
         }
 
         // Transform everything into temple space and gather triangle centroids.
+        ToTempleSpace(split);
         var centroids = new List<Vector3>();
         foreach (var src in split)
         {
-            Matrix4x4 m = src.ToTemple;
-            Matrix4x4 n = m.inverse.transpose;
-            for (int i = 0; i < src.Vertices.Length; i++)
-            {
-                src.Vertices[i] = m.MultiplyPoint3x4(src.Vertices[i]);
-            }
-            if (src.Normals != null && src.Normals.Length == src.Vertices.Length)
-            {
-                for (int i = 0; i < src.Normals.Length; i++)
-                {
-                    src.Normals[i] = n.MultiplyVector(src.Normals[i]).normalized;
-                }
-            }
             foreach (int[] tris in src.SubmeshTriangles)
             {
                 for (int t = 0; t < tris.Length; t += 3)
@@ -689,6 +794,60 @@ public class TempleDemolition : MonoBehaviour
             }
         }
 
+        var chunks = BuildChunks(split, assignment, chunkCount);
+        foreach (var chunk in chunks)
+        {
+            chunk.PartId = -1; // rubble
+        }
+        return chunks;
+    }
+
+    /// <summary>Worker thread: sorts every triangle into its architectural part, one chunk per part.</summary>
+    private static List<ChunkData> FractureArchitectural(List<SourceMesh> sources, TempleParts.Cuts cuts)
+    {
+        ToTempleSpace(sources);
+        var parts = new List<TempleParts.Source>(sources.Count);
+        foreach (var src in sources)
+        {
+            parts.Add(new TempleParts.Source
+            {
+                Vertices = src.Vertices,
+                SubmeshTriangles = src.SubmeshTriangles,
+                MaterialNames = src.MaterialNames,
+            });
+        }
+        int[][][] assignment = TempleParts.Classify(parts, cuts);
+        return BuildChunks(sources, assignment, TempleParts.Count);
+    }
+
+    /// <summary>Moves vertices and normals into temple space, in place.</summary>
+    private static void ToTempleSpace(List<SourceMesh> sources)
+    {
+        foreach (var src in sources)
+        {
+            Matrix4x4 m = src.ToTemple;
+            Matrix4x4 n = m.inverse.transpose;
+            for (int i = 0; i < src.Vertices.Length; i++)
+            {
+                src.Vertices[i] = m.MultiplyPoint3x4(src.Vertices[i]);
+            }
+            if (src.Normals != null && src.Normals.Length == src.Vertices.Length)
+            {
+                for (int i = 0; i < src.Normals.Length; i++)
+                {
+                    src.Normals[i] = n.MultiplyVector(src.Normals[i]).normalized;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds one mesh per chunk index from a per-triangle assignment
+    /// (assignment[source][submesh][triangle] = chunk), remapping shared vertices. Empty chunks are skipped.
+    /// </summary>
+    private static List<ChunkData> BuildChunks(List<SourceMesh> split, int[][][] assignment, int chunkCount)
+    {
+        var chunks = new List<ChunkData>();
         // Build each chunk's vertex/index buffers, remapping shared vertices.
         var remap = new Dictionary<int, int>();
         var verts = new List<Vector3>();
@@ -696,7 +855,7 @@ public class TempleDemolition : MonoBehaviour
         var uvs = new List<Vector2>();
         for (int c = 0; c < chunkCount; c++)
         {
-            var chunk = new ChunkData();
+            var chunk = new ChunkData { PartId = c };
             verts.Clear();
             normals.Clear();
             uvs.Clear();
@@ -766,6 +925,55 @@ public class TempleDemolition : MonoBehaviour
         return chunks;
     }
 
+    /// <summary>Architectural style: every visible mesh is sorted into the temple's parts.</summary>
+    private IEnumerator BuildArchitecturalRoutine(List<SourceMesh> all)
+    {
+        // Hidden meshes in the model are left out: they never show in the standing temple either.
+        var sources = new List<SourceMesh>();
+        foreach (var src in all)
+        {
+            if (!src.Filter.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+            src.Vertices = src.Mesh.vertices;
+            src.Normals = src.Mesh.normals;
+            src.Uvs = src.Mesh.uv;
+            src.SubmeshTriangles = new int[src.Mesh.subMeshCount][];
+            src.MaterialNames = new string[src.Mesh.subMeshCount];
+            for (int s = 0; s < src.Mesh.subMeshCount; s++)
+            {
+                src.SubmeshTriangles[s] = src.Mesh.GetTriangles(s);
+                Material m = s < src.Materials.Length ? src.Materials[s] : null;
+                string texture = m != null && m.mainTexture != null ? m.mainTexture.name : "";
+                src.MaterialNames[s] = m != null ? (m.name + "|" + texture).ToLowerInvariant() : "";
+            }
+            sources.Add(src);
+        }
+
+        TempleParts.Cuts cuts = _partCuts;
+        Task<List<ChunkData>> task = Task.Run(() => FractureArchitectural(sources, cuts));
+        while (!task.IsCompleted)
+        {
+            yield return null;
+        }
+        if (task.IsFaulted)
+        {
+            Debug.LogException(task.Exception, this);
+            yield break;
+        }
+
+        BuildPieces(task.Result, new List<SourceMesh>(), new List<SourceMesh>());
+        foreach (var src in sources)
+        {
+            src.Vertices = null;
+            src.Normals = null;
+            src.Uvs = null;
+            src.SubmeshTriangles = null;
+        }
+        IsReady = true;
+    }
+
     private void BuildPieces(List<ChunkData> chunks, List<SourceMesh> whole, List<SourceMesh> tiny)
     {
         var rootGo = new GameObject(name + " (Rubble)");
@@ -796,8 +1004,11 @@ public class TempleDemolition : MonoBehaviour
             }
             mesh.RecalculateBounds();
 
-            var t = AddPiece($"Chunk_{index++}", mesh, chunk.Materials.ToArray(),
-                Matrix4x4.Translate(chunk.Center));
+            string pieceName = chunk.PartId >= 0
+                ? $"{TempleParts.Get((TempleParts.Id)chunk.PartId).Title} ({TempleParts.Get((TempleParts.Id)chunk.PartId).Subtitle})"
+                : $"Chunk_{index}";
+            index++;
+            var t = AddPiece(pieceName, mesh, chunk.Materials.ToArray(), Matrix4x4.Translate(chunk.Center), chunk.PartId);
             chunkTransforms.Add(t);
         }
 
@@ -863,7 +1074,7 @@ public class TempleDemolition : MonoBehaviour
         }
     }
 
-    private Transform AddPiece(string pieceName, Mesh mesh, Material[] materials, Matrix4x4 toTemple)
+    private Transform AddPiece(string pieceName, Mesh mesh, Material[] materials, Matrix4x4 toTemple, int partId = -1)
     {
         var go = new GameObject(pieceName);
         var t = go.transform;
@@ -922,6 +1133,10 @@ public class TempleDemolition : MonoBehaviour
             LocalRotation = t.localRotation,
             Height = height,
             Radial = radial,
+            PartId = partId,
+            Bounds = b,
+            Grabbable = grabbable,
+            HandGrab = handGrab,
         });
         return t;
     }
