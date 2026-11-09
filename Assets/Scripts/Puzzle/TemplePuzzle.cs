@@ -371,7 +371,9 @@ public class TemplePuzzle : MonoBehaviour
         int heldPiece = -1;
         for (int i = 0; i < _slots.Length; i++)
         {
-            bool held = active && !IsPlaced(i) && _grabbables[i] != null && _grabbables[i].SelectingPointsCount > 0;
+            // SelectingPoints is null until the piece first wakes (the rubble stays inactive while the temple trembles).
+            bool held = active && !IsPlaced(i) && _grabbables[i] != null && _grabbables[i].SelectingPoints != null
+                        && _grabbables[i].SelectingPointsCount > 0;
             if (_held[i] && !held && active && !IsPlaced(i))
             {
                 OnReleased(i);

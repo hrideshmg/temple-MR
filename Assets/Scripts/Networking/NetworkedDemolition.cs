@@ -306,7 +306,9 @@ public class NetworkedDemolition : NetworkBehaviour
         for (int i = 0; i < _grabbables.Length; i++)
         {
             Transform t = _demolition.GetPieceBody(i).transform;
-            bool held = _grabbables[i] != null && _grabbables[i].SelectingPointsCount > 0 && !_demolition.IsPieceLocked(i);
+            // SelectingPoints is null until the piece first wakes (the rubble stays inactive while the temple trembles).
+            bool held = _grabbables[i] != null && _grabbables[i].SelectingPoints != null
+                        && _grabbables[i].SelectingPointsCount > 0 && !_demolition.IsPieceLocked(i);
             if (held)
             {
                 TrackHeldPiece(i, t, dt);
