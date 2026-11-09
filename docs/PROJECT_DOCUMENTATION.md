@@ -2,7 +2,7 @@
 
 Reference documentation for the KoviLens (a.k.a. Templ-MR / TestHands) mixed-reality temple app for Meta Quest 3 / 3S. For project status and setup, read [HANDOVER.md](HANDOVER.md) first.
 
-*Describes the `paper` branch at `1eebf08` (2026-11-09); `main` does not have the story staging or the rebuild puzzle yet. Line numbers are approximate; search for the method name.*
+*Describes `main` as of 2026-11-09 (commit `1eebf08`). Line numbers are approximate; search for the method name.*
 
 ## Contents
 1. [Overview](#1-overview)

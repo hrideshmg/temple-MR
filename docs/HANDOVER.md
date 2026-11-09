@@ -31,7 +31,7 @@ It is a Quest port and redesign of an earlier HoloLens 2 app, also called KovilL
 
 ## 3. Repository
 
-The newest work (story staging, rebuild puzzle) is on the `paper` branch and not yet merged into `main`. Remote: `https://github.com/hrideshmg/temple-MR.git`.
+All work is on `main`. Remote: `https://github.com/hrideshmg/temple-MR.git`.
 
 Commit messages are plain imperative sentences describing the change (e.g. "Add grab bar to move the control panel").
 
