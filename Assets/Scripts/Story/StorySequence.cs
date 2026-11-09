@@ -207,6 +207,8 @@ public class StorySequence : MonoBehaviour
         {
             _puzzle.Hidden = playing;
         }
+        // Nor can anyone use the panel's temple buttons, or pick up the pieces of the story's collapse.
+        _demolition.StoryPlaying = playing;
         if (!active)
         {
             _collapsedByStory = false;
@@ -271,7 +273,7 @@ public class StorySequence : MonoBehaviour
     {
         if (_networkedDemolition != null)
         {
-            _networkedDemolition.RequestDemolish(TempleDemolition.FractureStyle.Rubble);
+            _networkedDemolition.RequestDemolish(TempleDemolition.FractureStyle.Rubble, true);
         }
         else
         {
@@ -283,7 +285,7 @@ public class StorySequence : MonoBehaviour
     {
         if (_networkedDemolition != null)
         {
-            _networkedDemolition.RequestRebuild();
+            _networkedDemolition.RequestRebuild(true);
         }
         else
         {
@@ -392,6 +394,9 @@ public class StorySequence : MonoBehaviour
         float baseAngle = Mathf.Atan2(toBase.y, horizontal) * Mathf.Rad2Deg;
         float pitch = Mathf.Clamp(baseAngle - 5f, -28f, -8f) * Mathf.Deg2Rad;
         float d = Mathf.Clamp(horizontal * 0.8f, 0.45f, 1.4f);
+        // Keep the caption in front of the temple's near surface, not inside or behind it.
+        float nearSurface = horizontal - _anatomy.WorldRadius - 0.1f;
+        d = Mathf.Min(d, Mathf.Max(0.3f, nearSurface));
         Vector3 target = eyes + (flat / horizontal * Mathf.Cos(pitch) + Vector3.up * Mathf.Sin(pitch)) * d;
         if (!_captionPlaced)
         {
