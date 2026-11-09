@@ -72,11 +72,11 @@ public class TempleControlPanel : MonoBehaviour
 
     [SerializeField]
     [Tooltip("Body yaw only follows the head once the head is turned further than this.")]
-    private float _turnThreshold = 55f;
+    private float _turnThreshold = 80f;
 
     [SerializeField]
     [Tooltip("Seconds the head must stay turned past the threshold before the body counts as turned.")]
-    private float _turnDwell = 0.8f;
+    private float _turnDwell = 1.5f;
 
     [SerializeField]
     [Tooltip("Looking within this many degrees of the panel never counts as turning away.")]
@@ -97,7 +97,7 @@ public class TempleControlPanel : MonoBehaviour
 
     // Layout (canvas units, 1 unit = _canvasScale metres).
     private const float Width = 240f;
-    private const float Height = 484f;
+    private const float Height = 540f;
     private const float Pad = 16f;
     private const float PanelRadius = 22f;
     private const float ButtonRadius = 14f;
@@ -131,6 +131,7 @@ public class TempleControlPanel : MonoBehaviour
     private PokeButton _setPositionButton;
     private PokeButton _resetButton;
     private PokeButton _demolishButton;
+    private PokeButton _puzzleButton;
     private PokeButton _devButton;
     private RectTransform _devPopup;
     private PokeButton[] _devButtons;
@@ -263,23 +264,26 @@ public class TempleControlPanel : MonoBehaviour
             Pad, 264f, Width - Pad * 2f, 48f, SetTemplePosition, 15f);
         _demolishButton = Button("Demolish", PokeButton.Style.Danger, UISpriteFactory.Icon.Crack, "Demolish temple",
             Pad, 320f, Width - Pad * 2f, 48f, ToggleDemolition, 15f);
+        _puzzleButton = Button("PuzzleMode", PokeButton.Style.Secondary, null, "Puzzle mode",
+            Pad, 376f, Width - Pad * 2f, 48f, StartPuzzle, 15f);
 
-        Divider(380f);
+        Divider(436f);
 
-        SectionLabel("SESSION", 392f);
+        SectionLabel("SESSION", 448f);
         _sessionText = Text("SessionStatus", "Offline", 10.5f, FontStyles.Normal, TextSecondary,
-            Pad, 408f, Width - Pad * 2f, 14f);
+            Pad, 464f, Width - Pad * 2f, 14f);
         _sessionText.overflowMode = TextOverflowModes.Ellipsis;
         float half = (Width - Pad * 2f - 8f) * 0.5f;
         _hostButton = Button("HostSession", PokeButton.Style.Secondary, null, "Host",
-            Pad, 428f, half, 40f, HostOrLeave, 15f);
+            Pad, 484f, half, 40f, HostOrLeave, 15f);
         _joinButton = Button("JoinSession", PokeButton.Style.Secondary, null, "Join",
-            Pad + half + 8f, 428f, half, 40f, () => NetworkSession.Instance?.Join(), 15f);
+            Pad + half + 8f, 484f, half, 40f, () => NetworkSession.Instance?.Join(), 15f);
         BuildErrorBox();
 
         _panelButtons = new[]
         {
-            _devButton, collapse, _playButton, _resetButton, _setPositionButton, _demolishButton, _hostButton, _joinButton,
+            _devButton, collapse, _playButton, _resetButton, _setPositionButton, _demolishButton, _puzzleButton, _hostButton,
+            _joinButton,
         };
         foreach (var b in _panelButtons)
         {
@@ -406,15 +410,53 @@ public class TempleControlPanel : MonoBehaviour
         }
     }
 
+    /// <summary>Demolish breaks the temple into rubble; pressed again, it rebuilds whatever lies in pieces.</summary>
     private void ToggleDemolition()
     {
-        if (_networkedDemolition != null)
+        if (_demolition == null)
         {
-            _networkedDemolition.RequestToggle();
+            return;
+        }
+        if (_demolition.IsDemolished)
+        {
+            Rebuild();
         }
         else
         {
-            _demolition?.Toggle();
+            Demolish(TempleDemolition.FractureStyle.Rubble);
+        }
+    }
+
+    /// <summary>Puzzle mode: the temple comes apart into its architectural parts, to be put back by hand.</summary>
+    private void StartPuzzle()
+    {
+        if (_demolition != null && !_demolition.IsDemolished)
+        {
+            Demolish(TempleDemolition.FractureStyle.Architectural);
+        }
+    }
+
+    private void Demolish(TempleDemolition.FractureStyle style)
+    {
+        if (_networkedDemolition != null)
+        {
+            _networkedDemolition.RequestDemolish(style);
+        }
+        else if (!_demolition.StoryPlaying)
+        {
+            _demolition.Demolish(style);
+        }
+    }
+
+    private void Rebuild()
+    {
+        if (_networkedDemolition != null)
+        {
+            _networkedDemolition.RequestRebuild();
+        }
+        else if (!_demolition.StoryPlaying)
+        {
+            _demolition.Rebuild();
         }
     }
 
@@ -578,8 +620,10 @@ public class TempleControlPanel : MonoBehaviour
         }
         if (_turning)
         {
-            _bodyYaw += delta * (1f - Mathf.Exp(-5f * dt));
-            if (Mathf.Abs(delta) < 4f)
+            _bodyYaw += delta * (1f - Mathf.Exp(-2.5f * dt));
+            // Stop once roughly facing the new direction rather than re-centring exactly, so the panel
+            // settles off to the side instead of sweeping in front of whatever you turned to look at.
+            if (Mathf.Abs(delta) < 25f)
             {
                 _turning = false;
             }
@@ -686,19 +730,25 @@ public class TempleControlPanel : MonoBehaviour
         if (_demolition != null)
         {
             bool down = _demolition.IsDemolished;
-            // While the pieces are being put back by hand, show how far along the puzzle is.
-            var puzzle = _demolition.IsArchitectural ? _demolition.GetComponent<TemplePuzzle>() : null;
-            string rebuild = puzzle != null && puzzle.IsActive && puzzle.TotalCount > 0
-                ? $"Rebuild ({puzzle.PlacedCount}/{puzzle.TotalCount} placed)"
-                : "Rebuild temple";
-            _demolishButton.SetLabel(!_demolition.IsReady ? "Preparing..." : (down ? rebuild : "Demolish temple"));
+            bool ready = _demolition.IsReady;
+            // While the story plays, the panel's temple buttons are off (Play / Pause still works).
+            bool story = _demolition.StoryPlaying;
+            bool heldByOther = _networkedTemple != null && _networkedTemple.IsHeldByOther;
+            _demolishButton.SetLabel(!ready ? "Preparing..." : (down ? "Rebuild temple" : "Demolish temple"));
             _demolishButton.SetIcon(down ? UISpriteFactory.Icon.Home : UISpriteFactory.Icon.Crack);
             // The host won't demolish the temple out of another player's hands.
-            _demolishButton.SetEnabled(down || _networkedTemple == null || !_networkedTemple.IsHeldByOther);
+            _demolishButton.SetEnabled(ready && !story && (down || !heldByOther));
+
+            // While the pieces are being put back by hand, this shows how far along the puzzle is.
+            var puzzle = _demolition.IsArchitectural ? _demolition.GetComponent<TemplePuzzle>() : null;
+            bool solving = down && puzzle != null && puzzle.IsActive && puzzle.TotalCount > 0;
+            _puzzleButton.SetLabel(!ready ? "Preparing..."
+                : solving ? $"{puzzle.PlacedCount}/{puzzle.TotalCount} parts placed" : "Puzzle mode");
+            _puzzleButton.SetEnabled(ready && !story && !down && !heldByOther);
             // Nothing sensible to save while the temple is lying in pieces.
-            _setPositionButton.SetEnabled(!down);
+            _setPositionButton.SetEnabled(!story && !down);
             // The host ignores a reset while another player is holding the temple.
-            _resetButton.SetEnabled(!down && (_networkedTemple == null || !_networkedTemple.IsHeldByOther));
+            _resetButton.SetEnabled(!story && !down && (_networkedTemple == null || !_networkedTemple.IsHeldByOther));
         }
 
         if (_devOpen)
@@ -706,7 +756,7 @@ public class TempleControlPanel : MonoBehaviour
             bool busy = RoomColliders.IsBusy;
             _rescanButton.SetLabel(busy ? "Scanning..." : "Rescan room");
             // A guest's room is the host's shared scan; rescanning would replace it and break alignment.
-            _rescanButton.SetEnabled(!busy && !SharedSpace.UsingHostRoom);
+            _rescanButton.SetEnabled(!busy && !SharedSpace.UsingHostRoom && (_demolition == null || !_demolition.StoryPlaying));
             bool shown = RoomColliders.CollidersVisible;
             _collidersButton.SetLabel(shown ? "Hide colliders" : "Show colliders");
             _collidersButton.Toggled = shown;

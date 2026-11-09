@@ -16,10 +16,10 @@ using Random = UnityEngine.Random;
 /// - <b>Architectural</b>: it comes apart into its real parts, the platform, base, the four walls,
 ///   cornice, storeys, dome and finial, plus Nandi and the door guardians (see
 ///   <see cref="TempleParts"/>), so it can be rebuilt piece by piece as a puzzle
-///   (<see cref="TemplePuzzle"/>, added automatically). The panel's Demolish uses this by default.
+///   (<see cref="TemplePuzzle"/>, added automatically). The panel's Puzzle mode button uses this.
 /// - <b>Rubble</b>: large shell meshes are cut into irregular Voronoi chunks by assigning each
 ///   triangle to its nearest seed point; mid-sized parts (pillars, kalashas, statues) fall as pieces
-///   of their own; tiny trim rides along with the nearest chunk. The story's collapse uses this.
+///   of their own; tiny trim rides along with the nearest chunk. The panel's Demolish and the story use this.
 ///
 /// <see cref="Demolish"/> trembles the temple, swaps it for the pieces and releases them bottom-first:
 /// lower pieces kick outward, upper ones sag inward. With <see cref="_explosive"/> on, pieces that
@@ -41,9 +41,10 @@ public class TempleDemolition : MonoBehaviour
 
     [Header("Fracture")]
     [SerializeField]
-    [Tooltip("Style for Demolish() without one (the panel's button). Architectural: the temple comes apart " +
-             "into its named parts and can be rebuilt as a puzzle. Rubble: random chunks.")]
-    private FractureStyle _fractureStyle = FractureStyle.Architectural;
+    [Tooltip("Style for Demolish() without one (the panel and the story always name theirs: Demolish and the story " +
+             "use Rubble, Puzzle mode uses Architectural). Architectural: the temple comes apart into its named parts " +
+             "and can be rebuilt as a puzzle. Rubble: random chunks.")]
+    private FractureStyle _fractureStyle = FractureStyle.Rubble;
 
     [SerializeField]
     [Tooltip("Architectural style: heights (fractions of the temple's height) where the stacked parts are cut.")]
@@ -128,6 +129,14 @@ public class TempleDemolition : MonoBehaviour
     [SerializeField]
     [Range(0f, 1f)] private float _collapseVolume = 0.9f;
 
+    [SerializeField]
+    [Tooltip("Played as the pieces fly back on Rebuild, except during the story (whose rebuild is silent). " +
+             "If empty, a synthesised shimmer is used.")]
+    private AudioClip _rebuildClip;
+
+    [SerializeField]
+    [Range(0f, 1f)] private float _rebuildVolume = 0.6f;
+
     [Header("Rebuild")]
     [SerializeField]
     [Tooltip("Seconds the rubble takes to fly back into place on Rebuild. 0 snaps the temple back at once.")]
@@ -156,7 +165,36 @@ public class TempleDemolition : MonoBehaviour
     /// </summary>
     public bool Driven { get; set; }
 
+    /// <summary>
+    /// On while the story plays (set by <see cref="StorySequence"/> on every headset). The standing
+    /// temple can still be picked up and moved, but the pieces of the story's collapse can't (they fly
+    /// back on their own), and the rebuild makes no sound of its own. The panel greys out its temple
+    /// buttons meanwhile.
+    /// </summary>
+    public bool StoryPlaying
+    {
+        get => _storyPlaying;
+        set
+        {
+            if (_storyPlaying == value)
+            {
+                return;
+            }
+            _storyPlaying = value;
+            foreach (var set in new[] { _architecturalSet, _rubbleSet })
+            {
+                foreach (var p in set.Pieces)
+                {
+                    SetPieceGrabbable(p, !p.Locked);
+                }
+            }
+        }
+    }
+
     public int PieceCount => _pieces.Count;
+
+    /// <summary>True once the collapse has swapped the standing temple for its pieces (after the tremble).</summary>
+    public bool PiecesOut => IsDemolished && _debrisRoot != null && _debrisRoot.gameObject.activeSelf;
 
     /// <summary>The style of the pieces in use: of the current collapse, or of the last one.</summary>
     public FractureStyle CurrentStyle => _active.Style;
@@ -223,8 +261,9 @@ public class TempleDemolition : MonoBehaviour
         }
     }
 
-    private static void SetPieceGrabbable(Piece p, bool grabbable)
+    private void SetPieceGrabbable(Piece p, bool grabbable)
     {
+        grabbable &= !_storyPlaying;
         if (p.Grabbable != null)
         {
             p.Grabbable.enabled = grabbable;
@@ -293,6 +332,7 @@ public class TempleDemolition : MonoBehaviour
     private readonly List<Rigidbody> _falling = new List<Rigidbody>();
     private readonly Dictionary<Material, Material> _doubleSided = new Dictionary<Material, Material>();
 
+    private bool _storyPlaying;
     private Bounds _localBounds;
     private Coroutine _routine;
     private bool _trembling;
@@ -401,6 +441,11 @@ public class TempleDemolition : MonoBehaviour
         }
 
         IsDemolished = false;
+        AudioClip rebuildClip = _rebuildClip != null ? _rebuildClip : StorySounds.Shimmer;
+        if (!_storyPlaying && _audio != null && rebuildClip != null)
+        {
+            _audio.PlayOneShot(rebuildClip, _rebuildVolume);
+        }
         if (_reassembleTime > 0f && _debrisRoot.gameObject.activeSelf)
         {
             // The intact temple stays hidden until the last piece lands.

@@ -487,7 +487,7 @@ public class TemplePuzzle : MonoBehaviour
         _infoBody.text = "From the platform up to the finial, in the order its builders raised it.";
         _infoPiece = -1;
         _infoUntil = Time.time + _infoTime;
-        Play(StorySounds.Shimmer, 0.6f);
+        // No sound of its own: the rebuild that follows plays TempleDemolition's.
     }
 
     private void UpdateCards(Vector3 eyes)

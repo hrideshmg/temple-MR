@@ -161,6 +161,10 @@ public class NetworkedTemple : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void SetHomeRpc()
     {
+        if (_demolition != null && _demolition.StoryPlaying)
+        {
+            return; // the story is playing
+        }
         // The host's view of the temple's pose is the shared one.
         _resetter.SetHomeToCurrent();
         WriteHome();
@@ -169,9 +173,9 @@ public class NetworkedTemple : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void ResetRpc()
     {
-        if (_holder.Value != Nobody)
+        if (_holder.Value != Nobody || (_demolition != null && _demolition.StoryPlaying))
         {
-            return; // someone is holding it; don't yank it out of their hand
+            return; // someone is holding it, or the story is playing
         }
         TakeOwnershipForHost();
         _resetter.ResetTemple();

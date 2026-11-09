@@ -19,6 +19,11 @@ using UnityEngine;
 /// For the rebuild puzzle (<see cref="TemplePuzzle"/>) the host decides every placement, including
 /// guests' (checked when their throw arrives), and shares which pieces are in place as a bit mask.
 ///
+/// The temple is pre-fractured in two styles (architectural parts, random rubble), so every pose
+/// message names the set its piece indices belong to, and a guest drops poses for a set it isn't
+/// showing. Per-piece state on both sides is reset on every collapse, so nothing from the last one
+/// (old targets, a grab cache for the other set) leaks into the next.
+///
 /// Without a session this does nothing and <see cref="TempleDemolition"/> works as before.
 /// Attach to the Temple root, next to <see cref="TempleDemolition"/> and <see cref="NetworkedTemple"/>.
 /// </summary>
@@ -61,6 +66,7 @@ public class NetworkedDemolition : NetworkBehaviour
     private float _snapshotTimer;
 
     // Guest: where the host says each piece is, and which pieces this player is holding.
+    private TempleDemolition.FractureStyle _guestStyle;
     private Vector3[] _targetPosition;
     private Quaternion[] _targetRotation;
     private bool[] _hasTarget;
@@ -75,7 +81,32 @@ public class NetworkedDemolition : NetworkBehaviour
     {
         _demolition = GetComponent<TempleDemolition>();
         _temple = GetComponent<NetworkedTemple>();
+        _demolition.DemolishedChanged += OnDemolishedChanged;
     }
+
+    public override void OnDestroy()
+    {
+        if (_demolition != null)
+        {
+            _demolition.DemolishedChanged -= OnDemolishedChanged;
+        }
+        base.OnDestroy();
+    }
+
+    private void OnDemolishedChanged(bool demolished)
+    {
+        // A fresh collapse (or a rebuild): forget every piece's last pose, on both sides.
+        _sentPosition = null;
+        _targetPosition = null;
+        if (IsSpawned)
+        {
+            Debug.Log($"[MP] NetworkedDemolition: {(demolished ? "collapse" : "rebuild")} as {_demolition.CurrentStyle}, " +
+                      $"{_demolition.PieceCount} pieces, server={IsServer}");
+        }
+    }
+
+    /// <summary>Host: the story is playing, so players' Demolish / Rebuild requests are ignored.</summary>
+    private bool StoryPlaying => _demolition.StoryPlaying;
 
     /// <summary>Demolish / Rebuild for every player; acts locally without a session.</summary>
     public void RequestToggle()
@@ -88,26 +119,38 @@ public class NetworkedDemolition : NetworkBehaviour
         ToggleRpc();
     }
 
-    /// <summary>Collapses in the given style for every player (if standing); acts locally without a session.</summary>
-    public void RequestDemolish(TempleDemolition.FractureStyle style)
+    /// <summary>
+    /// Collapses in the given style for every player (if standing); acts locally without a session.
+    /// A player's request (not <paramref name="byStory"/>) is ignored while the story plays.
+    /// </summary>
+    public void RequestDemolish(TempleDemolition.FractureStyle style, bool byStory = false)
     {
         if (!IsSpawned)
         {
-            _demolition.Demolish(style);
+            if (byStory || !_demolition.StoryPlaying)
+            {
+                _demolition.Demolish(style);
+            }
             return;
         }
-        DemolishRpc((byte)style);
+        DemolishRpc((byte)style, byStory);
     }
 
-    /// <summary>Rebuilds for every player (if demolished); acts locally without a session.</summary>
-    public void RequestRebuild()
+    /// <summary>
+    /// Rebuilds for every player (if demolished); acts locally without a session. A player's request
+    /// (not <paramref name="byStory"/>) is ignored while the story plays.
+    /// </summary>
+    public void RequestRebuild(bool byStory = false)
     {
         if (!IsSpawned)
         {
-            _demolition.Rebuild();
+            if (byStory || !_demolition.StoryPlaying)
+            {
+                _demolition.Rebuild();
+            }
             return;
         }
-        RebuildRpc();
+        RebuildRpc(byStory);
     }
 
     public override void OnNetworkSpawn()
@@ -159,7 +202,8 @@ public class NetworkedDemolition : NetworkBehaviour
     [Rpc(SendTo.Server)]
     private void ToggleRpc()
     {
-        if (!_demolition.IsReady)
+        // The panel greys the button out during the story; this catches a press that crossed its start.
+        if (!_demolition.IsReady || StoryPlaying)
         {
             return;
         }
@@ -174,18 +218,18 @@ public class NetworkedDemolition : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    private void DemolishRpc(byte style)
+    private void DemolishRpc(byte style, bool byStory)
     {
-        if (_demolition.IsReady && !_demolition.IsDemolished)
+        if (_demolition.IsReady && !_demolition.IsDemolished && (byStory || !StoryPlaying))
         {
             HostDemolish((TempleDemolition.FractureStyle)style);
         }
     }
 
     [Rpc(SendTo.Server)]
-    private void RebuildRpc()
+    private void RebuildRpc(bool byStory)
     {
-        if (_demolition.IsReady && _demolition.IsDemolished)
+        if (_demolition.IsReady && _demolition.IsDemolished && (byStory || !StoryPlaying))
         {
             HostRebuild();
         }
@@ -223,7 +267,8 @@ public class NetworkedDemolition : NetworkBehaviour
         {
             _placed.Value = Puzzle.PlacedMask;
         }
-        if (!_demolition.IsDemolished)
+        // Nothing to send while the temple still trembles: the pieces aren't laid out yet.
+        if (!_demolition.PiecesOut)
         {
             return;
         }
@@ -272,6 +317,7 @@ public class NetworkedDemolition : NetworkBehaviour
         {
             int n = Mathf.Min(PiecesPerMessage, pieces.Count - start);
             using var writer = new FastBufferWriter(8 + n * 30, Allocator.Temp);
+            writer.WriteValueSafe((byte)_demolition.CurrentStyle);
             writer.WriteValueSafe((ushort)_demolition.PieceCount);
             writer.WriteValueSafe((ushort)n);
             for (int k = 0; k < n; k++)
@@ -301,6 +347,11 @@ public class NetworkedDemolition : NetworkBehaviour
         {
             return;
         }
+        if (!_demolition.PiecesOut)
+        {
+            _snapshotTimer = 0f; // still trembling: everyone gets a snapshot as soon as the pieces are out
+            return;
+        }
         var all = new List<int>();
         for (int i = 0; i < _demolition.PieceCount; i++)
         {
@@ -323,7 +374,8 @@ public class NetworkedDemolition : NetworkBehaviour
     }
 
     [Rpc(SendTo.Server)]
-    private void ThrowPieceRpc(ushort index, Vector3 position, Quaternion rotation, Vector3 velocity, Vector3 angularVelocity)
+    private void ThrowPieceRpc(ushort index, Vector3 position, Quaternion rotation, Vector3 velocity, Vector3 angularVelocity,
+        RpcParams rpcParams = default)
     {
         if (!_demolition.IsDemolished || index >= _demolition.PieceCount || _demolition.IsPieceLocked(index))
         {
@@ -335,16 +387,27 @@ public class NetworkedDemolition : NetworkBehaviour
         rb.rotation = rotation;
         _demolition.ThrowPiece(index, velocity, angularVelocity);
         // Let go near its slot: the puzzle may set it in place.
-        Puzzle?.TrySnap(index);
+        bool placed = Puzzle != null && Puzzle.TrySnap(index);
+        Debug.Log($"[MP] NetworkedDemolition: client {rpcParams.Receive.SenderClientId} let go of piece {index}" +
+                  (placed ? ", placed in its slot." : "."));
     }
 
     private void UpdateGuest()
     {
         // Follow the host's demolished state (also catches up once the local fracture is ready).
+        var style = (TempleDemolition.FractureStyle)_style.Value;
+        if (_demolished.Value && _demolition.IsDemolished && _demolition.CurrentStyle != style)
+        {
+            // Broke into the other set of pieces (the style arrived late): put it back, and collapse
+            // again into the host's set on the next frame.
+            Debug.LogWarning($"[MP] NetworkedDemolition: showing {_demolition.CurrentStyle} pieces, host has {style}; switching.");
+            _demolition.Rebuild();
+            return;
+        }
         if (_demolished.Value && !_demolition.IsDemolished)
         {
             _demolition.Driven = true;
-            _demolition.Demolish((TempleDemolition.FractureStyle)_style.Value);
+            _demolition.Demolish(style);
             RequestSnapshotRpc();
         }
         else if (!_demolished.Value && _demolition.IsDemolished)
@@ -373,8 +436,9 @@ public class NetworkedDemolition : NetworkBehaviour
             }
             else if (_held[i])
             {
-                // Let go: the host simulates the throw from here.
+                // Let go: the host simulates the throw from here (and may set it in its slot).
                 _held[i] = false;
+                Debug.Log($"[MP] NetworkedDemolition: let go of piece {i}, sending it to the host.");
                 ThrowPieceRpc((ushort)i, t.position, t.rotation, _heldVelocity[i], _heldAngularVelocity[i]);
                 _targetPosition[i] = t.position;
                 _targetRotation[i] = t.rotation;
@@ -418,9 +482,14 @@ public class NetworkedDemolition : NetworkBehaviour
         {
             return;
         }
-        EnsureGuestArrays();
+        reader.ReadValueSafe(out byte hostStyle);
         reader.ReadValueSafe(out ushort hostCount);
         reader.ReadValueSafe(out ushort n);
+        if (!_demolition.IsDemolished || hostStyle != (byte)_demolition.CurrentStyle)
+        {
+            return; // poses for the other set of pieces, or from a collapse this headset hasn't started
+        }
+        EnsureGuestArrays();
         if (hostCount != _demolition.PieceCount)
         {
             // Only happens if the fracture came out differently here (e.g. editor vs headset float maths).
@@ -443,10 +512,12 @@ public class NetworkedDemolition : NetworkBehaviour
     private void EnsureGuestArrays()
     {
         int count = _demolition.PieceCount;
-        if (_targetPosition != null && _targetPosition.Length == count)
+        if (_targetPosition != null && _targetPosition.Length == count && _guestStyle == _demolition.CurrentStyle)
         {
             return;
         }
+        // The two sets of pieces have their own grabbables, even when their counts happen to match.
+        _guestStyle = _demolition.CurrentStyle;
         _targetPosition = new Vector3[count];
         _targetRotation = new Quaternion[count];
         _hasTarget = new bool[count];
